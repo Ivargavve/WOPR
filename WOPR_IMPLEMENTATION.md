@@ -6,7 +6,7 @@
 
 ## Overview
 
-WOPR is a retro styled AI desktop assistant for Windows that runs on a secondary display. It observes the user's screen, provides contextual help, and learns over time. The default AI persona is named "Joshua" (a WarGames reference), but users can configure this to any name they prefer.
+WOPR is a retro styled AI desktop assistant for Windows and macOS that runs on a secondary display. It observes the user's screen, provides contextual help, and learns over time. The default AI persona is named "Joshua" (a WarGames reference), but users can configure this to any name they prefer.
 
 **Reference Document:** `WOPR_AI_ASSISTANT.md` contains the full feature specification and UI mockups.
 
@@ -16,7 +16,7 @@ WOPR is a retro styled AI desktop assistant for Windows that runs on a secondary
 
 | Constraint | Value |
 |------------|-------|
-| Platform | **Windows only** |
+| Platform | **Windows + macOS** |
 | Framework | **Tauri + Svelte** |
 | AI Backend | **Google Gemini API** |
 | Storage | **Local files only** (no database, no cloud sync) |
@@ -33,12 +33,41 @@ WOPR is a retro styled AI desktop assistant for Windows that runs on a secondary
 │  Frontend: Svelte + CSS                 │
 │  Backend:  Tauri (Rust)                 │
 ├─────────────────────────────────────────┤
-│  Screen Capture: Windows DXGI / GDI     │
-│  OCR: Tesseract.js or Windows OCR API   │
+│  Screen Capture (platform specific)     │
+│  OCR (platform specific)                │
 │  Voice: Web Speech API / Whisper.cpp    │
 │  AI: Google Gemini API                  │
 │  Storage: YAML + JSON + Markdown files  │
 └─────────────────────────────────────────┘
+```
+
+---
+
+## Platform Specific Implementation
+
+Most code is shared across platforms. Only these features need platform specific handling:
+
+| Feature | Windows | macOS |
+|---------|---------|-------|
+| Screen Capture | DXGI / GDI | ScreenCaptureKit |
+| OCR | Windows.Media.Ocr | Apple Vision Framework |
+| Active Window | Win32 API (GetForegroundWindow) | NSWorkspace |
+| System Stats | WMI | sysinfo crate (cross platform) |
+| Autostart | Registry / Startup folder | LaunchAgents |
+| Media Control | Windows.Media.Control | AppleScript / MusicKit |
+| User Data Path | `%APPDATA%\Local\WOPR` | `~/Library/Application Support/WOPR` |
+
+**Rust conditional compilation:**
+```rust
+#[cfg(target_os = "windows")]
+fn capture_screen() {
+    // Windows implementation
+}
+
+#[cfg(target_os = "macos")]
+fn capture_screen() {
+    // macOS implementation
+}
 ```
 
 ---
@@ -91,30 +120,34 @@ wopr/
 ```
 
 ### User Data Folders (Created at Runtime)
+
+**Windows:** `C:\Users\{user}\AppData\Local\WOPR\`
+**macOS:** `~/Library/Application Support/WOPR/`
+
 ```
-C:\Users\{user}\AppData\Local\WOPR\
-├── config\                    # User managed
+WOPR/
+├── config/                    # User managed
 │   ├── config.yaml            # Main settings
-│   ├── plugins\
-│   │   ├── league-of-legends\
+│   ├── plugins/
+│   │   ├── league-of-legends/
 │   │   │   ├── plugin.yaml
 │   │   │   ├── joshua-guide.md
-│   │   │   └── assets\
-│   │   ├── vscode\
-│   │   └── browser\
-│   ├── buttons\
+│   │   │   └── assets/
+│   │   ├── vscode/
+│   │   └── browser/
+│   ├── buttons/
 │   │   └── deck-pages.yaml
-│   └── scripts\
+│   └── scripts/
 │
-└── brain\                     # WOPR managed (AI writes here)
-    ├── observations\
+└── brain/                     # WOPR managed (AI writes here)
+    ├── observations/
     │   └── {date}.md          # Daily observations
-    ├── learned\
+    ├── learned/
     │   ├── {plugin-name}.md   # Per app learned preferences
     │   └── general.md         # General user patterns
-    ├── insights\
+    ├── insights/
     │   └── patterns.md
-    └── context\
+    └── context/
         └── recent.md          # Rolling context for AI
 ```
 
@@ -131,7 +164,7 @@ Each stage is designed to be **independently runnable by a Claude subagent**. St
 
 **Tasks:**
 - [ ] Initialize Tauri project with Svelte template
-- [ ] Configure `tauri.conf.json` for Windows
+- [ ] Configure `tauri.conf.json` for Windows and macOS
 - [ ] Set up folder structure as specified above
 - [ ] Add base dependencies to `package.json` and `Cargo.toml`
 - [ ] Create basic app shell that opens a window
@@ -198,7 +231,7 @@ npm install
 - [ ] Implement display detection and selection
 - [ ] Add window modes: Windowed, Borderless Fullscreen, Fullscreen
 - [ ] Implement "Always on Top" toggle
-- [ ] Implement "Launch on Startup" using Windows Registry or Startup folder
+- [ ] Implement "Launch on Startup" (Windows: Registry/Startup folder, macOS: LaunchAgents)
 - [ ] Save window preferences to `config.yaml`
 
 **Tauri APIs to use:**
@@ -289,19 +322,23 @@ npm install
 **Can run in parallel with:** Stage 6, Stage 8
 
 **Tasks:**
-- [ ] Implement screen capture using Windows APIs (DXGI or GDI)
+- [ ] Implement screen capture (platform specific):
+  - Windows: DXGI or GDI
+  - macOS: ScreenCaptureKit
 - [ ] Create Tauri command for screen capture (Rust side)
-- [ ] Implement OCR using either:
-  - Windows.Media.Ocr API (native, recommended)
-  - Tesseract.js (fallback)
+- [ ] Implement OCR (platform specific):
+  - Windows: Windows.Media.Ocr API
+  - macOS: Apple Vision Framework
+  - Fallback: Tesseract.js (cross platform)
 - [ ] Create capture scheduling (configurable interval, default 30s)
 - [ ] Implement capture toggle (Vision ON/OFF button)
 - [ ] Handle multi monitor (capture primary display only)
 - [ ] Privacy: process in memory, never save screenshots
 
 **Rust crates to consider:**
-- `screenshots` - Screen capture
+- `screenshots` - Screen capture (cross platform)
 - `windows` - Windows API bindings
+- `objc` / `cocoa` - macOS API bindings
 
 **Deliverable:** Can capture screen and extract text on interval
 
@@ -313,7 +350,9 @@ npm install
 **Can run in parallel with:** Stage 6, Stage 7
 
 **Tasks:**
-- [ ] Implement active window detection (Windows API)
+- [ ] Implement active window detection (platform specific):
+  - Windows: Win32 API
+  - macOS: NSWorkspace
 - [ ] Get window title and process name
 - [ ] Create Tauri command to poll active window
 - [ ] Implement auto switch logic:
@@ -322,10 +361,9 @@ npm install
 - [ ] Implement ignored apps list
 - [ ] Add transition delay (prevent flicker on rapid switches)
 
-**Windows APIs:**
-- `GetForegroundWindow`
-- `GetWindowText`
-- `GetWindowThreadProcessId`
+**Platform APIs:**
+- Windows: `GetForegroundWindow`, `GetWindowText`, `GetWindowThreadProcessId`
+- macOS: `NSWorkspace.shared.frontmostApplication`
 
 **Deliverable:** Auto switches mode when configured apps are detected
 
@@ -481,8 +519,9 @@ const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
 **Tasks:**
 - [ ] Detect running music apps (Spotify, etc.)
-- [ ] Get current track info:
-  - Windows: Use Windows.Media.Control API
+- [ ] Get current track info (platform specific):
+  - Windows: Windows.Media.Control API
+  - macOS: AppleScript / MusicKit
 - [ ] Implement playback controls (play/pause/next/prev)
 - [ ] Implement volume control
 - [ ] Display album art (convert to ASCII art for retro feel, or show actual)
@@ -516,7 +555,8 @@ const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
 **Tasks:**
 - [ ] Read notifications from Discord/Slack (if running)
-  - Windows: Use notification listener APIs
+  - Windows: Notification listener APIs
+  - macOS: NSUserNotificationCenter / UNUserNotificationCenter
   - Or: Accessibility APIs to read app content
 - [ ] Display recent messages grouped by app
 - [ ] Implement quick reply (predefined responses)
@@ -537,7 +577,7 @@ const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 - [ ] Implement button types:
   - App launcher
   - URL opener
-  - Script runner (PowerShell/batch)
+  - Script runner (Windows: PowerShell/batch, macOS: shell/AppleScript)
   - Hotkey sender
   - System command (lock, sleep, volume)
 - [ ] Create button editor UI
@@ -568,23 +608,30 @@ const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 ---
 
 ### Stage 20: Testing & Packaging
-**Subagent task:** Final testing and Windows installer
+**Subagent task:** Final testing and platform installers
 
 **Tasks:**
 - [ ] Test all modes thoroughly
-- [ ] Test on different Windows versions (10, 11)
+- [ ] Test on different OS versions:
+  - Windows 10, 11
+  - macOS 12+ (Monterey and later)
 - [ ] Test multi monitor scenarios
-- [ ] Build Windows installer (MSI or NSIS)
+- [ ] Build platform installers:
+  - Windows: MSI or NSIS
+  - macOS: DMG / .app bundle
 - [ ] Configure auto updater (optional)
 - [ ] Create default plugin pack
 - [ ] Write user documentation
 
 **Tauri build:**
 ```bash
+# Build for current platform
 npm run tauri build
+
+# Cross platform builds require CI/CD (GitHub Actions recommended)
 ```
 
-**Deliverable:** Distributable Windows installer
+**Deliverable:** Distributable installers for Windows and macOS
 
 ---
 
@@ -656,8 +703,9 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 # Install Tauri CLI
 npm install -g @tauri-apps/cli
 
-# Windows: Install Visual Studio Build Tools
-# Required for Rust compilation on Windows
+# Platform specific:
+# Windows: Install Visual Studio Build Tools (required for Rust)
+# macOS: Install Xcode Command Line Tools: xcode-select --install
 ```
 
 ### Environment Variables
@@ -691,5 +739,6 @@ GEMINI_API_KEY=your_api_key_here
 3. **Test incrementally** - each stage should produce working functionality
 4. **Prioritize core experience** - Stages 1-11 are essential, 12-18 are enhancements
 5. **Keep it simple** - Don't over engineer. Files over databases. Simple over clever.
-6. **Windows only** - Don't add macOS or Linux compatibility code
+6. **Windows + macOS** - Use conditional compilation for platform specific code
 7. **Local only** - No cloud storage, no sync features, just local files
+8. **Test on Mac first** - Develop and test on macOS, verify Windows compatibility before release

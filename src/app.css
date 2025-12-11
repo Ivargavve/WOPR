@@ -1,0 +1,128 @@
+/* ============================================
+   WOPR - Retro Terminal Theme
+   "Shall we play a game?"
+   ============================================ */
+
+/* Color Palette */
+:root {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #111111;
+  --bg-panel: #0d0d0d;
+
+  --text-primary: #00ff41;
+  --text-dim: #00aa2a;
+  --text-bright: #33ff66;
+
+  --accent-cyan: #00ffff;
+  --accent-warning: #ffaa00;
+  --accent-error: #ff0040;
+
+  --border-color: #00ff4133;
+  --border-bright: #00ff41;
+
+  --glow-green: 0 0 10px #00ff4144, 0 0 20px #00ff4122;
+  --glow-cyan: 0 0 10px #00ffff44, 0 0 20px #00ffff22;
+
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'IBM Plex Mono', monospace;
+}
+
+/* Base Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-dim);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-primary);
+}
+
+/* Selection */
+::selection {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+/* Text Glow Effect */
+.glow {
+  text-shadow: var(--glow-green);
+}
+
+.glow-cyan {
+  text-shadow: var(--glow-cyan);
+  color: var(--accent-cyan);
+}
+
+/* Phosphor Text Animation */
+@keyframes phosphor-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.98; }
+}
+
+/* CRT Scanline Effect (optional) */
+.crt-scanlines::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Typing Animation */
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent; }
+  50% { border-color: var(--text-primary); }
+}
+
+.typing-effect {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--text-primary);
+  animation: typing 2s steps(40, end), blink-caret 0.75s step-end infinite;
+}
