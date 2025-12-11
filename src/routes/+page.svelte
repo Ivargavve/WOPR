@@ -1,40 +1,71 @@
 <script>
   import { onMount } from 'svelte';
   import { RetroButton, ModeSelector, SettingsPanel } from '$lib/components';
-  import { getCurrentMode, getCurrentModeInfo } from '$lib/stores/mode.js';
+  import { getCurrentMode, getCurrentModeInfo } from '$lib/stores/mode.svelte.js';
   import { AssistantMode, MonitorMode, PomodoroMode } from '$lib/modes';
+  import { loadConfig } from '$lib/services/storage.js';
+  import * as permissions from '$lib/services/permissions.js';
 
   let time = $state('');
   let status = $state('INITIALIZING');
-  let visionOn = $state(true);
-  let listening = $state(true);
+  let visionOn = $state(false);
+  let listening = $state(false);
   let showSettings = $state(false);
 
   const currentMode = $derived(getCurrentMode());
   const modeInfo = $derived(getCurrentModeInfo());
 
+  /** @type {ReturnType<typeof setInterval> | null} */
+  let timeInterval = null;
+
   onMount(() => {
+    // Load config to get vision/voice state
+    loadConfig().then(config => {
+      visionOn = config.vision_enabled;
+      listening = config.voice_enabled;
+      // Update status after config loads
+      setTimeout(() => {
+        status = visionOn ? 'OBSERVING' : 'STANDBY';
+      }, 1500);
+    }).catch(e => {
+      console.error('Failed to load config:', e);
+      setTimeout(() => {
+        status = 'STANDBY';
+      }, 1500);
+    });
+
     // Update time every second
     const updateTime = () => {
       const now = new Date();
       time = now.toLocaleTimeString('en-US', { hour12: false });
     };
     updateTime();
-    const interval = setInterval(updateTime, 1000);
+    timeInterval = setInterval(updateTime, 1000);
 
-    // Simulate initialization
-    setTimeout(() => {
-      status = 'OBSERVING';
-    }, 2000);
-
-    return () => clearInterval(interval);
+    return () => {
+      if (timeInterval) clearInterval(timeInterval);
+    };
   });
 
-  function toggleVision() {
-    visionOn = !visionOn;
+  async function toggleVision() {
+    if (!visionOn) {
+      // Trying to enable - check permission first
+      const hasPermission = await permissions.testScreenCapture();
+      if (hasPermission) {
+        visionOn = true;
+        status = 'OBSERVING';
+      } else {
+        // Open settings for user to grant permission
+        await permissions.openScreenRecordingSettings();
+      }
+    } else {
+      visionOn = false;
+      status = 'STANDBY';
+    }
   }
 
   function toggleListening() {
+    // Just toggle the state - browser will ask for mic permission when voice is actually used
     listening = !listening;
   }
 
@@ -75,14 +106,14 @@
 
   <section class="content-area">
     {#if currentMode === 'assistant'}
-      <AssistantMode />
+      <AssistantMode {visionOn} voiceOn={listening} />
     {:else if currentMode === 'monitor'}
       <MonitorMode />
     {:else if currentMode === 'pomodoro'}
       <PomodoroMode />
     {:else}
       <div class="coming-soon">
-        <p class="mode-title">{modeInfo.icon} {modeInfo.name}</p>
+        <p class="mode-title">[{modeInfo.icon}] {modeInfo.name}</p>
         <p class="dim">> Coming soon...</p>
       </div>
     {/if}

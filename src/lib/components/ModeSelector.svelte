@@ -1,5 +1,5 @@
 <script>
-  import { MODES, getCurrentMode, setMode } from '$lib/stores/mode.js';
+  import { MODES, getCurrentMode, setMode } from '$lib/stores/mode.svelte.js';
 
   let isOpen = $state(false);
   const currentMode = $derived(getCurrentMode());

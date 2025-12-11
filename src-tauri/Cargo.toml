@@ -26,3 +26,23 @@ sysinfo = "0.32"
 # For YAML config handling
 serde_yaml = "0.9"
 
+# Screen capture
+screenshots = "0.8"
+
+# Base64 encoding for images
+base64 = "0.22"
+
+# Image processing
+image = "0.25"
+
+# Directory paths
+dirs = "5"
+
+# Dialog plugin for folder picker
+tauri-plugin-dialog = "2"
+
+# macOS permissions
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2"
+cocoa = "0.26"
+

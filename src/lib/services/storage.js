@@ -10,7 +10,9 @@ import { invoke } from '@tauri-apps/api/core';
 /**
  * @typedef {Object} AppConfig
  * @property {string} persona_name - AI persona name
- * @property {string|null} api_key - Gemini API key
+ * @property {string} ai_provider - AI provider (openai, anthropic, gemini)
+ * @property {string|null} api_key - AI API key
+ * @property {string} ai_model - AI model to use
  * @property {number} capture_interval_ms - Screen capture interval
  * @property {boolean} vision_enabled - Whether vision is enabled
  * @property {boolean} voice_enabled - Whether voice is enabled
@@ -19,15 +21,18 @@ import { invoke } from '@tauri-apps/api/core';
  * @property {boolean} launch_on_startup - Launch on system startup
  * @property {boolean} always_on_top - Keep window on top
  * @property {ThemeConfig} theme - Theme settings
+ * @property {string|null} [data_folder_path] - Custom data folder path
  */
 
 /**
  * @typedef {Object} DataPaths
- * @property {string} app_dir - Application data directory
+ * @property {string} data_folder - User data folder
  * @property {string} config_file - Config file path
  * @property {string} brain_dir - Brain storage directory
  * @property {string} plugins_dir - Plugins directory
  * @property {string} captures_dir - Screen captures directory
+ * @property {string} logs_dir - Logs directory
+ * @property {string} default_folder - Default data folder (Desktop/WOPR)
  */
 
 /**
@@ -90,4 +95,14 @@ export async function loadBrainData(filename) {
  */
 export async function listBrainFiles() {
   return await invoke('list_brain_files');
+}
+
+/**
+ * Change data folder and optionally migrate existing data
+ * @param {string} newPath - New folder path
+ * @param {boolean} migrate - Whether to copy existing data to new location
+ * @returns {Promise<void>}
+ */
+export async function changeDataFolder(newPath, migrate = true) {
+  return await invoke('change_data_folder', { newPath, migrate });
 }

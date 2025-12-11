@@ -1,12 +1,13 @@
 mod services;
 
-use services::{storage, window};
+use services::{capture, permissions, storage, window};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             window::get_window_state,
             window::save_window_state,
@@ -22,6 +23,16 @@ pub fn run() {
             storage::save_brain_data,
             storage::load_brain_data,
             storage::list_brain_files,
+            storage::change_data_folder,
+            capture::capture_screen,
+            capture::get_screen_info,
+            permissions::check_permissions,
+            permissions::check_screen_recording_permission,
+            permissions::check_microphone_permission,
+            permissions::open_screen_recording_settings,
+            permissions::open_microphone_settings,
+            permissions::open_privacy_settings,
+            permissions::test_screen_capture,
         ])
         .setup(|app| {
             // Initialize storage directories and default config

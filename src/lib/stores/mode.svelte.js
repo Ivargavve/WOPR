@@ -15,37 +15,37 @@ export const MODES = [
   {
     id: 'assistant',
     name: 'AI Assistant',
-    icon: '🤖',
+    icon: '>_',
     description: 'Contextual AI help based on screen activity'
   },
   {
     id: 'monitor',
     name: 'System Monitor',
-    icon: '📊',
+    icon: '[]',
     description: 'CPU, RAM, and system performance'
   },
   {
     id: 'music',
     name: 'Music Player',
-    icon: '🎵',
+    icon: '>>',
     description: 'Music controls and now playing'
   },
   {
     id: 'pomodoro',
     name: 'Pomodoro Timer',
-    icon: '⏱️',
+    icon: '()',
     description: 'Focus timer with work/break cycles'
   },
   {
     id: 'chat',
     name: 'Chat Hub',
-    icon: '💬',
+    icon: '##',
     description: 'Multi-platform messaging overview'
   },
   {
     id: 'control',
     name: 'Control Deck',
-    icon: '🎮',
+    icon: '<>',
     description: 'Quick actions and shortcuts'
   }
 ];

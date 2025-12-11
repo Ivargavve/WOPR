@@ -85,10 +85,12 @@ export function getConfigError() {
 function getDefaultConfig() {
   return {
     persona_name: 'Joshua',
+    ai_provider: 'openai',
     api_key: null,
-    capture_interval_ms: 5000,
-    vision_enabled: true,
-    voice_enabled: true,
+    ai_model: 'gpt-4o-mini',
+    capture_interval_ms: 30000,
+    vision_enabled: false,  // Default OFF - requires permission
+    voice_enabled: false,   // Default OFF - requires permission
     wake_word: 'Joshua',
     current_mode: 'assistant',
     launch_on_startup: true,
