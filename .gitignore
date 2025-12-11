@@ -1,0 +1,178 @@
+# ============================================
+# WOPR - AI Desktop Assistant
+# Comprehensive .gitignore for Tauri + Svelte
+# ============================================
+
+# ----------------------
+# Dependencies
+# ----------------------
+node_modules/
+.pnp/
+.pnp.js
+
+# ----------------------
+# Build outputs
+# ----------------------
+dist/
+dist-ssr/
+build/
+.svelte-kit/
+.output/
+*.js.map
+
+# Tauri build outputs
+src-tauri/target/
+src-tauri/WixTools/
+src-tauri/Cargo.lock
+
+# ----------------------
+# Environment files
+# ----------------------
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# ----------------------
+# IDE and editors
+# ----------------------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# ----------------------
+# OS generated files
+# ----------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ----------------------
+# Logs
+# ----------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ----------------------
+# Testing
+# ----------------------
+coverage/
+.nyc_output/
+*.lcov
+
+# ----------------------
+# Rust specific
+# ----------------------
+**/*.rs.bk
+*.pdb
+/target/
+Cargo.lock
+
+# Rust analyzer
+rust-project.json
+
+# ----------------------
+# Tauri specific
+# ----------------------
+# Windows installer artifacts
+*.msi
+*.exe
+*.nsis
+
+# macOS artifacts
+*.dmg
+*.app
+
+# Linux artifacts
+*.deb
+*.AppImage
+*.rpm
+
+# Bundle outputs
+src-tauri/target/
+src-tauri/bundle/
+
+# ----------------------
+# TypeScript
+# ----------------------
+*.tsbuildinfo
+
+# ----------------------
+# Svelte
+# ----------------------
+.svelte-kit/
+
+# ----------------------
+# Temporary files
+# ----------------------
+tmp/
+temp/
+.temp/
+.tmp/
+*.tmp
+*.temp
+
+# ----------------------
+# Cache
+# ----------------------
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.cache
+
+# Vite cache
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# ----------------------
+# Package manager locks (optional - uncomment if needed)
+# ----------------------
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ----------------------
+# WOPR specific
+# ----------------------
+# User data (created at runtime, should never be committed)
+brain/
+config/user-config.yaml
+
+# API keys and secrets
+secrets/
+*.key
+*.pem
+
+# Screenshots and captures (privacy)
+captures/
+screenshots/
+
+# Local plugin development
+plugins-dev/
+
+# ----------------------
+# Miscellaneous
+# ----------------------
+*.bak
+*.backup
+*.orig
+.history/
