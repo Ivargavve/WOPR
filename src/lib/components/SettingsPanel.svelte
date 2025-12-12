@@ -5,7 +5,6 @@
   import { loadConfig, saveConfig, getDataPaths, changeDataFolder } from '$lib/services/storage.js';
   import { getAvailableScreens } from '$lib/services/capture.js';
   import { PROVIDERS, testConnection } from '$lib/services/ai.js';
-  import * as permissions from '$lib/services/permissions.js';
   import { open } from '@tauri-apps/plugin-dialog';
 
   /** @type {{show: boolean, onclose: () => void}} */
@@ -18,14 +17,10 @@
   let testResult = $state('');
   let isMigrating = $state(false);
   let migrationStatus = $state('');
-  let visionPermissionStatus = $state('');
-  let voicePermissionStatus = $state('');
   /** @type {import('$lib/services/window.js').DisplayInfo[]} */
   let displays = $state([]);
   /** @type {import('$lib/services/capture.js').ScreenCaptureInfo[]} */
   let captureScreens = $state([]);
-  /** @type {{deviceId: string, label: string}[]} */
-  let microphones = $state([]);
 
   // Local state for form fields
   let personaName = $state('Joshua');
@@ -35,17 +30,12 @@
   let apiKey = $state('');
   let aiModel = $state('gpt-4o-mini');
   let captureInterval = $state(30);
-  let visionEnabled = $state(false);
-  let voiceEnabled = $state(false);
   let wakeWord = $state('Joshua');
-  let scanlines = $state(true);
   let alwaysOnTop = $state(false);
   let dataFolderPath = $state('');
   let defaultFolderPath = $state('');
   /** @type {string} */
   let selectedMonitor = $state('default');
-  /** @type {string} */
-  let selectedMicrophone = $state('default');
 
   // Get available models for selected provider
   const availableModels = $derived(
@@ -76,14 +66,10 @@
         apiKey = config.api_key || '';
         aiModel = config.ai_model || 'gpt-4o-mini';
         captureInterval = Math.round((config.capture_interval_ms || 30000) / 1000);
-        visionEnabled = config.vision_enabled;
-        voiceEnabled = config.voice_enabled;
         wakeWord = config.wake_word;
-        scanlines = config.theme?.scanlines ?? true;
         alwaysOnTop = config.always_on_top;
         selectedMonitor = config.selected_monitor !== null && config.selected_monitor !== undefined
           ? String(config.selected_monitor) : 'default';
-        selectedMicrophone = config.selected_microphone || 'default';
       }
 
       // Get data paths
@@ -98,19 +84,6 @@
         captureScreens = await getAvailableScreens();
       } catch (e) {
         console.error('Failed to get screens:', e);
-      }
-
-      // Get available microphones
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        microphones = devices
-          .filter(d => d.kind === 'audioinput')
-          .map((d, i) => ({
-            deviceId: d.deviceId,
-            label: d.label || `Microphone ${i + 1}`
-          }));
-      } catch (e) {
-        console.error('Failed to enumerate audio devices:', e);
       }
     } catch (e) {
       console.error('Failed to load settings:', e);
@@ -130,16 +103,9 @@
       api_key: apiKey || null,
       ai_model: aiModel,
       capture_interval_ms: captureInterval * 1000,
-      vision_enabled: visionEnabled,
-      voice_enabled: voiceEnabled,
       wake_word: wakeWord,
       always_on_top: alwaysOnTop,
-      theme: {
-        ...config.theme,
-        scanlines
-      },
-      selected_monitor: selectedMonitor === 'default' ? null : parseInt(selectedMonitor, 10),
-      selected_microphone: selectedMicrophone === 'default' ? null : selectedMicrophone
+      selected_monitor: selectedMonitor === 'default' ? null : parseInt(selectedMonitor, 10)
     };
 
     try {
@@ -239,86 +205,6 @@
       isMigrating = false;
     }
   }
-
-  /**
-   * Handle vision toggle - check permission when enabling
-   * @param {boolean} newValue
-   */
-  async function handleVisionToggle(newValue) {
-    if (newValue) {
-      // User is trying to enable vision - check/request permission
-      visionPermissionStatus = 'Checking...';
-      try {
-        const hasPermission = await permissions.testScreenCapture();
-        if (hasPermission) {
-          visionEnabled = true;
-          visionPermissionStatus = '';
-        } else {
-          visionPermissionStatus = 'Permission required';
-          // Open settings
-          await permissions.openScreenRecordingSettings();
-          visionEnabled = false;
-        }
-      } catch (e) {
-        visionPermissionStatus = 'Error checking permission';
-        visionEnabled = false;
-      }
-    } else {
-      visionEnabled = false;
-      visionPermissionStatus = '';
-    }
-  }
-
-  /**
-   * Handle voice toggle - check permission when enabling
-   * @param {boolean} newValue
-   */
-  async function handleVoiceToggle(newValue) {
-    if (newValue) {
-      // User is trying to enable voice - request microphone permission
-      voicePermissionStatus = 'Requesting...';
-      try {
-        const granted = await permissions.requestMicrophonePermission();
-        if (granted) {
-          voiceEnabled = true;
-          voicePermissionStatus = '';
-        } else {
-          voicePermissionStatus = 'Permission denied';
-          voiceEnabled = false;
-        }
-      } catch (e) {
-        voicePermissionStatus = 'Error requesting permission';
-        voiceEnabled = false;
-      }
-    } else {
-      voiceEnabled = false;
-      voicePermissionStatus = '';
-    }
-  }
-
-  async function handleOpenScreenSettings() {
-    try {
-      await permissions.openScreenRecordingSettings();
-    } catch (e) {
-      console.error('Failed to open screen settings:', e);
-    }
-  }
-
-  async function recheckVisionPermission() {
-    visionPermissionStatus = 'Checking...';
-    try {
-      const hasPermission = await permissions.testScreenCapture();
-      if (hasPermission) {
-        visionEnabled = true;
-        visionPermissionStatus = 'Enabled!';
-        setTimeout(() => { visionPermissionStatus = ''; }, 2000);
-      } else {
-        visionPermissionStatus = 'Still not allowed';
-      }
-    } catch (e) {
-      visionPermissionStatus = 'Check failed';
-    }
-  }
 </script>
 
 {#if show}
@@ -394,86 +280,28 @@
             </div>
           </RetroPanel>
 
-          <RetroPanel title="VISION & VOICE">
-            <div class="permission-toggle-group">
-              <div class="toggle-row">
-                <RetroToggle
-                  label="Screen Reading"
-                  checked={visionEnabled}
-                  onchange={handleVisionToggle}
-                />
-                {#if visionPermissionStatus}
-                  <span class="permission-status" class:error={visionPermissionStatus.includes('denied') || visionPermissionStatus.includes('required')}>
-                    {visionPermissionStatus}
-                  </span>
-                {/if}
-              </div>
-              {#if visionPermissionStatus && !visionEnabled}
-                <div class="permission-help">
-                  <p class="dim">Enable WOPR in System Preferences > Privacy > Screen Recording</p>
-                  <div class="permission-buttons">
-                    <RetroButton label="OPEN SETTINGS" onclick={handleOpenScreenSettings} />
-                    <RetroButton label="RECHECK" onclick={recheckVisionPermission} />
-                  </div>
-                </div>
-              {/if}
+          <RetroPanel title="SCREEN CAPTURE">
+            <div class="setting-group">
+              <RetroInput
+                label="Capture Interval (seconds)"
+                type="number"
+                bind:value={captureInterval}
+                placeholder="30"
+              />
             </div>
-            {#if visionEnabled}
-              <div class="setting-group">
-                <label class="interval-label">Capture Interval: {captureInterval}s</label>
-                <input
-                  type="range"
-                  min="10"
-                  max="120"
-                  step="5"
-                  bind:value={captureInterval}
-                  class="retro-slider"
-                />
-              </div>
-              {#if captureScreens.length > 1}
-                <div class="setting-group">
-                  <RetroSelect
-                    label="Capture Monitor"
-                    options={[
-                      { value: 'default', label: 'Primary Display' },
-                      ...captureScreens.map(s => ({
-                        value: String(s.index),
-                        label: `${s.name} (${s.width}x${s.height})${s.is_primary ? ' *' : ''}`
-                      }))
-                    ]}
-                    bind:value={selectedMonitor}
-                  />
-                </div>
-              {/if}
-            {/if}
-            <div class="permission-toggle-group">
-              <div class="toggle-row">
-                <RetroToggle
-                  label="Voice Input"
-                  checked={voiceEnabled}
-                  onchange={handleVoiceToggle}
-                />
-                {#if voicePermissionStatus}
-                  <span class="permission-status" class:error={voicePermissionStatus.includes('denied') || voicePermissionStatus.includes('Error')}>
-                    {voicePermissionStatus}
-                  </span>
-                {/if}
-              </div>
-            </div>
-            {#if voiceEnabled && microphones.length > 0}
+            {#if captureScreens.length > 1}
               <div class="setting-group">
                 <RetroSelect
-                  label="Microphone"
+                  label="Capture Monitor"
                   options={[
-                    { value: 'default', label: 'System Default' },
-                    ...microphones.map(m => ({
-                      value: m.deviceId,
-                      label: m.label
+                    { value: 'default', label: 'Primary Display' },
+                    ...captureScreens.map(s => ({
+                      value: String(s.index),
+                      label: `${s.name} (${s.width}x${s.height})${s.is_primary ? ' *' : ''}`
                     }))
                   ]}
-                  bind:value={selectedMicrophone}
+                  bind:value={selectedMonitor}
                 />
-                <p class="dim mic-hint">Note: Browser uses system default. Change in OS settings.</p>
               </div>
             {/if}
           </RetroPanel>
@@ -504,12 +332,6 @@
           </RetroPanel>
 
           <RetroPanel title="DISPLAY">
-            <div class="toggle-group">
-              <RetroToggle
-                label="Scanlines Effect"
-                bind:checked={scanlines}
-              />
-            </div>
             <div class="toggle-group">
               <RetroToggle
                 label="Always On Top"

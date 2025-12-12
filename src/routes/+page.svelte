@@ -3,7 +3,7 @@
   import { RetroButton, ModeSelector, SettingsPanel } from '$lib/components';
   import { getCurrentMode, getCurrentModeInfo } from '$lib/stores/mode.svelte.js';
   import { AssistantMode, MonitorMode, PomodoroMode } from '$lib/modes';
-  import { loadConfig } from '$lib/services/storage.js';
+  import { loadConfig, saveConfig } from '$lib/services/storage.js';
   import * as permissions from '$lib/services/permissions.js';
 
   let time = $state('');
@@ -11,6 +11,8 @@
   let visionOn = $state(false);
   let listening = $state(false);
   let showSettings = $state(false);
+  /** @type {import('$lib/services/storage.js').AppConfig | null} */
+  let currentConfig = $state(null);
 
   const currentMode = $derived(getCurrentMode());
   const modeInfo = $derived(getCurrentModeInfo());
@@ -21,6 +23,7 @@
   onMount(() => {
     // Load config to get vision/voice state
     loadConfig().then(config => {
+      currentConfig = config;
       visionOn = config.vision_enabled;
       listening = config.voice_enabled;
       // Update status after config loads
@@ -57,20 +60,42 @@
       } else {
         // Open settings for user to grant permission
         await permissions.openScreenRecordingSettings();
+        return; // Don't save if permission not granted
       }
     } else {
       visionOn = false;
       status = 'STANDBY';
     }
+    // Save to config
+    if (currentConfig) {
+      await saveConfig({ ...currentConfig, vision_enabled: visionOn });
+    }
   }
 
-  function toggleListening() {
-    // Just toggle the state - browser will ask for mic permission when voice is actually used
+  async function toggleListening() {
     listening = !listening;
+    // Save to config
+    if (currentConfig) {
+      await saveConfig({ ...currentConfig, voice_enabled: listening });
+    }
   }
 
   function toggleSettings() {
     showSettings = !showSettings;
+  }
+
+  async function handleSettingsClose() {
+    showSettings = false;
+    // Reload config to apply any changes
+    try {
+      const config = await loadConfig();
+      currentConfig = config;
+      visionOn = config.vision_enabled;
+      listening = config.voice_enabled;
+      status = visionOn ? 'OBSERVING' : 'STANDBY';
+    } catch (e) {
+      console.error('Failed to reload config:', e);
+    }
   }
 </script>
 
@@ -139,7 +164,7 @@
     />
   </footer>
 
-  <SettingsPanel show={showSettings} onclose={() => showSettings = false} />
+  <SettingsPanel show={showSettings} onclose={handleSettingsClose} />
 </main>
 
 <style>
