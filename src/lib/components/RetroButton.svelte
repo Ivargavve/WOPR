@@ -28,18 +28,21 @@
 <button
   class="retro-btn"
   class:active
+  class:icon-only={icon && !label}
   class:primary={variant === 'primary'}
   class:warning={variant === 'warning'}
   class:danger={variant === 'danger'}
   {disabled}
   onclick={handleClick}
 >
+  <span class="btn-bracket">[</span>
   {#if icon}
     <span class="btn-icon">{icon}</span>
   {/if}
   {#if label}
     <span class="btn-label">{label}</span>
   {/if}
+  <span class="btn-bracket">]</span>
 </button>
 
 <style>
@@ -47,11 +50,11 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
+    gap: 0.3rem;
+    padding: 0.6rem 0.5rem;
     min-height: 44px; /* Touch friendly */
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
+    background: transparent;
+    border: none;
     color: var(--text-dim);
     font-family: var(--font-mono);
     font-size: 0.75rem;
@@ -59,11 +62,17 @@
     transition: all 0.15s ease;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    position: relative;
   }
 
   .retro-btn:hover:not(:disabled) {
-    border-color: var(--text-primary);
     color: var(--text-primary);
+    text-shadow: 0 0 8px var(--text-primary);
+  }
+
+  .retro-btn:hover:not(:disabled) .btn-bracket {
+    color: var(--text-primary);
+    text-shadow: 0 0 10px var(--text-primary);
   }
 
   .retro-btn:active:not(:disabled) {
@@ -71,52 +80,84 @@
   }
 
   .retro-btn.active {
-    border-color: var(--text-primary);
     color: var(--text-primary);
-    box-shadow: var(--glow-green);
+    text-shadow: 0 0 10px var(--text-primary), 0 0 20px rgba(0, 255, 65, 0.3);
+  }
+
+  .retro-btn.active .btn-bracket {
+    color: var(--text-primary);
+    text-shadow: 0 0 10px var(--text-primary);
+  }
+
+  .retro-btn.active .btn-icon {
+    animation: icon-pulse 1.5s ease-in-out infinite;
   }
 
   .retro-btn.primary {
-    border-color: var(--text-primary);
     color: var(--text-primary);
   }
 
   .retro-btn.primary:hover:not(:disabled) {
-    background: var(--text-primary);
-    color: var(--bg-primary);
+    text-shadow: 0 0 15px var(--text-primary), 0 0 30px rgba(0, 255, 65, 0.4);
   }
 
   .retro-btn.warning {
-    border-color: var(--accent-warning);
+    color: var(--accent-warning);
+  }
+
+  .retro-btn.warning .btn-bracket {
     color: var(--accent-warning);
   }
 
   .retro-btn.warning:hover:not(:disabled) {
-    background: var(--accent-warning);
-    color: var(--bg-primary);
+    text-shadow: 0 0 15px var(--accent-warning);
   }
 
   .retro-btn.danger {
-    border-color: var(--accent-error);
+    color: var(--accent-error);
+  }
+
+  .retro-btn.danger .btn-bracket {
     color: var(--accent-error);
   }
 
   .retro-btn.danger:hover:not(:disabled) {
-    background: var(--accent-error);
-    color: var(--bg-primary);
+    text-shadow: 0 0 15px var(--accent-error);
   }
 
   .retro-btn:disabled {
-    opacity: 0.4;
+    opacity: 0.3;
     cursor: not-allowed;
   }
 
+  .btn-bracket {
+    color: var(--border-color);
+    font-size: 0.9rem;
+    font-weight: 300;
+    transition: all 0.15s ease;
+  }
+
   .btn-icon {
-    font-size: 1rem;
+    font-size: 0.85rem;
   }
 
   .btn-label {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: 500;
+    letter-spacing: 0.1em;
+  }
+
+  /* Icon-only buttons (like the @ scan button) */
+  .retro-btn.icon-only {
+    padding: 0.6rem 0.4rem;
+  }
+
+  .retro-btn.icon-only .btn-icon {
+    font-size: 0.9rem;
+  }
+
+  @keyframes icon-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
   }
 </style>

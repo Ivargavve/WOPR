@@ -1,6 +1,5 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { RetroPanel, RetroButton, RetroInput } from '$lib/components';
   import { loadConfig } from '$lib/services/storage.js';
   import { chatStream, analyzeScreen } from '$lib/services/ai.js';
   import { captureScreen } from '$lib/services/capture.js';
@@ -485,54 +484,27 @@
 </script>
 
 <div class="assistant-mode">
-  <div class="chat-panel-wrapper">
-    <RetroPanel>
-      <!-- Compact status bar -->
-      <div class="status-bar">
-        <span class="status-item" class:active={visionOn} class:scanning={isAnalyzing}>
-          {#if isAnalyzing}
-            EYE:SCAN
-          {:else if visionOn}
-            EYE:{nextScanCountdown}s
-          {:else}
-            EYE:OFF
-          {/if}
-        </span>
-        <span class="status-divider">|</span>
-        <span class="status-item" class:active={isListening} class:command-mode={inCommandMode} class:wake-word-heard={wakeWordHeard} class:waiting={voiceOn && !isListening}>
-          {#if inCommandMode}
-            MIC:SPEAK...
-          {:else if wakeWordHeard}
-            MIC:HEARD!
-          {:else if isListening}
-            MIC:ON
-          {:else if voiceOn}
-            MIC:...
-          {:else}
-            MIC:OFF
-          {/if}
-        </span>
-        {#if lastCaptureTime}
-          <span class="status-divider">|</span>
-          <span class="status-item dim">@{new Date(lastCaptureTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-        {/if}
-      </div>
-
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="message-area" bind:this={messagesContainer} onclick={() => hiddenInput?.focus()}>
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="message-area" bind:this={messagesContainer} onclick={() => hiddenInput?.focus()}>
         {#each messages as message, i}
-          <div class="terminal-line">
-            <span class="timestamp">{new Date(message.timestamp).toLocaleTimeString('en-US', { hour12: false })}</span>
-            <span class="msg-content">{message.content}{#if message.role === 'assistant' && isLoading && i === messages.length - 1}<span class="loading-cursor">█</span>{/if}</span>
+          {@const prevMessage = messages[i - 1]}
+          {@const isNewSpeaker = !prevMessage || prevMessage.role !== message.role}
+          <div class="terminal-line {message.role}" class:new-speaker={isNewSpeaker}>
+            <span class="msg-content">
+              {#if message.role === 'user'}<span class="user-prefix">&gt; </span>{/if}{message.content}{#if message.role === 'assistant' && isLoading && i === messages.length - 1}<span class="loading-cursor">█</span>{/if}
+            </span>
+            <span class="timestamp">{new Date(message.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </div>
         {/each}
 
         <!-- Input line at bottom -->
         {#if !isLoading}
-          <div class="terminal-line input-line">
-            <span class="timestamp">{new Date().toLocaleTimeString('en-US', { hour12: false })}</span>
+          {@const lastMsg = messages[messages.length - 1]}
+          {@const isNewSpeaker = !lastMsg || lastMsg.role !== 'user'}
+          <div class="terminal-line user input-line" class:new-speaker={isNewSpeaker}>
             <span class="msg-content"><span class="typed-text">{inputText}</span>{#if inputFocused}<span class="input-cursor">█</span>{:else}<span class="input-cursor-idle">_</span>{/if}</span>
+            <span class="timestamp">{new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </div>
         {/if}
 
@@ -546,8 +518,6 @@
           onblur={() => inputFocused = false}
           disabled={isLoading}
         />
-      </div>
-    </RetroPanel>
   </div>
 </div>
 
@@ -555,31 +525,7 @@
   .assistant-mode {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
     height: 100%;
-  }
-
-  .chat-panel-wrapper {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .chat-panel-wrapper :global(.retro-panel) {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  .chat-panel-wrapper :global(.panel-content) {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-    padding: 0.3rem;
   }
 
   .message-area {
@@ -588,7 +534,7 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    padding: 0.5rem;
+    padding: 1rem 1.5rem 1rem 2.5rem;
     cursor: text;
     font-family: var(--font-mono);
   }
@@ -596,11 +542,17 @@
   /* Terminal line - like old WOPR */
   .terminal-line {
     display: flex;
-    gap: 1.5rem;
-    font-size: 0.75rem;
-    line-height: 1.4;
-    margin-bottom: 0.4rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 0.2rem;
     width: 100%;
+  }
+
+  /* AI responses always uppercase */
+  .terminal-line.assistant .msg-content {
     text-transform: uppercase;
   }
 
@@ -608,19 +560,50 @@
     margin-bottom: 0;
   }
 
+  /* Add extra space when speaker changes */
+  .terminal-line.new-speaker {
+    margin-top: 0.6rem;
+  }
+
+  .terminal-line.new-speaker:first-child {
+    margin-top: 0;
+  }
+
   .timestamp {
-    color: var(--text-dim);
+    color: rgba(255, 255, 255, 0.7);
     flex-shrink: 0;
-    font-size: 0.65rem;
-    opacity: 0.7;
+    font-size: 0.95rem;
+    align-self: flex-start;
+    padding-top: 0.05rem;
+    font-family: 'Courier New', 'Lucida Console', monospace;
+    letter-spacing: 0.12em;
+    font-weight: bold;
   }
 
   .msg-content {
     color: var(--text-primary);
-    text-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.6), 0 0 20px rgba(0, 255, 65, 0.3);
     white-space: pre-wrap;
     word-break: break-word;
     flex: 1;
+  }
+
+  /* User messages - white */
+  .terminal-line.user .msg-content {
+    color: #ffffff;
+    text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+  }
+
+  .user-prefix {
+    color: var(--text-primary);
+    opacity: 0.6;
+  }
+
+  /* System/error messages */
+  .terminal-line.system .msg-content {
+    color: var(--accent-warning);
+    text-shadow: 0 0 8px rgba(255, 170, 0, 0.3);
+    text-transform: uppercase;
   }
 
   /* Input line styling */
@@ -645,6 +628,7 @@
   .loading-cursor {
     animation: cursor-blink 0.5s step-end infinite;
     color: var(--text-primary);
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
   }
 
   @keyframes cursor-blink {
@@ -660,53 +644,4 @@
     height: 1px;
   }
 
-  .status-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.15rem 0;
-    margin-bottom: 0.25rem;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 0.5rem;
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-  }
-
-  .status-item {
-    color: var(--text-dim);
-  }
-
-  .status-item.active {
-    color: var(--text-primary);
-  }
-
-  .status-item.scanning,
-  .status-item.waiting {
-    color: var(--accent-warning);
-    animation: blink 0.5s step-end infinite;
-  }
-
-  .status-item.wake-word-heard {
-    color: var(--accent-cyan);
-    animation: pulse 0.5s ease-in-out;
-  }
-
-  .status-item.command-mode {
-    color: var(--accent-cyan);
-    animation: blink 0.5s step-end infinite;
-  }
-
-  .status-item.dim {
-    color: var(--text-dim);
-    opacity: 0.7;
-  }
-
-  .status-divider {
-    color: var(--border-color);
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-</style>
+  </style>

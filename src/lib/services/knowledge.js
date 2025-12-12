@@ -3,9 +3,50 @@
  * Manages persistent knowledge/memory for the AI that persists across sessions
  */
 
-import { loadBrainData, saveBrainData } from './storage.js';
+import { loadBrainData, saveBrainData, loadConfig, saveConfig } from './storage.js';
 
 const KNOWLEDGE_FILE = 'knowledge.md';
+
+/**
+ * Extract user name from a knowledge item if it contains name info
+ * @param {string} item - The knowledge item
+ * @returns {string|null} - Extracted name or null
+ */
+function extractUserName(item) {
+  const lower = item.toLowerCase();
+  // Match patterns like "name is X", "user name is X", "called X", "user is X"
+  const patterns = [
+    /(?:user(?:'s)?|player(?:'s)?)\s+name\s+is\s+(\w+)/i,
+    /name\s+is\s+(\w+)/i,
+    /called\s+(\w+)/i,
+    /user\s+is\s+(\w+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = item.match(pattern);
+    if (match) {
+      return match[1];
+    }
+  }
+  return null;
+}
+
+/**
+ * Update config with user name if detected
+ * @param {string} name - The user name to save
+ */
+async function updateConfigUserName(name) {
+  try {
+    const config = await loadConfig();
+    if (config.user_name !== name) {
+      config.user_name = name;
+      await saveConfig(config);
+      console.log('Updated config user_name to:', name);
+    }
+  } catch (e) {
+    console.error('Failed to update config user_name:', e);
+  }
+}
 
 /**
  * Load knowledge from the brain storage
@@ -110,6 +151,12 @@ export async function parseAndExecuteKnowledgeCommands(response) {
     await addKnowledge(item);
     actions.push(`Remembered: ${item}`);
     cleanedResponse = cleanedResponse.replace(match[0], '').trim();
+
+    // Check if this is a user name and update config
+    const extractedName = extractUserName(item);
+    if (extractedName) {
+      await updateConfigUserName(extractedName);
+    }
   }
 
   // Match [FORGET: ...] commands

@@ -62,16 +62,17 @@
   .current-mode {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
     width: 100%;
-    padding: 0.35rem 0.5rem;
+    padding: 0.6rem 0.7rem;
     background: var(--bg-panel);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s ease;
+    min-height: 48px;
   }
 
   .current-mode:hover {
@@ -84,7 +85,7 @@
   }
 
   .mode-icon {
-    font-size: 0.9rem;
+    font-size: 1.1rem;
   }
 
   .mode-name {
@@ -115,9 +116,9 @@
   .mode-option {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
     width: 100%;
-    padding: 0.5rem;
+    padding: 0.7rem;
     background: transparent;
     border: none;
     border-bottom: 1px solid var(--border-color);
@@ -126,6 +127,7 @@
     cursor: pointer;
     text-align: left;
     transition: all 0.15s ease;
+    min-height: 52px;
   }
 
   .mode-option:last-child {
@@ -143,8 +145,8 @@
   }
 
   .option-icon {
-    font-size: 0.9rem;
-    width: 1.5rem;
+    font-size: 1.1rem;
+    width: 1.8rem;
     text-align: center;
   }
 
@@ -156,13 +158,13 @@
   }
 
   .option-name {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   .option-desc {
-    font-size: 0.55rem;
+    font-size: 0.65rem;
     color: var(--text-dim);
     opacity: 0.8;
   }

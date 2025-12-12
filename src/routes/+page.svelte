@@ -111,39 +111,64 @@
 <main class="wopr-container">
   <div class="scanlines"></div>
 
-  <header class="top-bar">
-    <div class="logo-compact">
-      <span class="logo-text glow">WOPR</span>
-      <span class="version">v0.1.0</span>
-      <span class="status-sep">|</span>
-      <span class="status-indicator" class:active={visionOn}>EYE:{visionOn ? 'ON' : 'OFF'}</span>
-      <span class="status-indicator" class:active={listening}>MIC:{listening ? 'ON' : 'OFF'}</span>
-    </div>
-    <div class="status-compact">
-      <span class="status-value glow">{status}</span>
-      <span class="status-sep">|</span>
-      <span class="time-value">{time}</span>
-    </div>
-  </header>
+  <div class="main-row">
+    <!-- Chat area - left side -->
+    <section class="content-area">
+      {#if currentMode === 'assistant'}
+        <AssistantMode bind:this={assistantModeRef} {visionOn} voiceOn={listening} />
+      {:else if currentMode === 'monitor'}
+        <MonitorMode />
+      {:else if currentMode === 'pomodoro'}
+        <PomodoroMode />
+      {:else}
+        <div class="coming-soon">
+          <p class="mode-title">[{modeInfo.icon}] {modeInfo.name}</p>
+          <p class="dim">> Coming soon...</p>
+        </div>
+      {/if}
+    </section>
 
-  <section class="mode-selector-section">
-    <ModeSelector />
-  </section>
-
-  <section class="content-area">
-    {#if currentMode === 'assistant'}
-      <AssistantMode bind:this={assistantModeRef} {visionOn} voiceOn={listening} />
-    {:else if currentMode === 'monitor'}
-      <MonitorMode />
-    {:else if currentMode === 'pomodoro'}
-      <PomodoroMode />
-    {:else}
-      <div class="coming-soon">
-        <p class="mode-title">[{modeInfo.icon}] {modeInfo.name}</p>
-        <p class="dim">> Coming soon...</p>
+    <!-- Sidebar - right side -->
+    <aside class="sidebar">
+      <!-- WOPR Logo -->
+      <div class="logo-section">
+        <pre class="wopr-ascii">██╗    ██╗ ██████╗ ██████╗ ██████╗
+██║    ██║██╔═══██╗██╔══██╗██╔══██╗
+██║ █╗ ██║██║   ██║██████╔╝██████╔╝
+██║███╗██║██║   ██║██╔═══╝ ██╔══██╗
+╚███╔███╔╝╚██████╔╝██║     ██║  ██║
+ ╚══╝╚══╝  ╚═════╝ ╚═╝     ╚═╝  ╚═╝</pre>
+        <div class="status-line">
+          <span class="status-value glow">{status}</span>
+          <span class="status-sep">|</span>
+          <span class="time-value">{time}</span>
+        </div>
       </div>
-    {/if}
-  </section>
+
+      <!-- Mode selector -->
+      <div class="sidebar-section">
+        <div class="section-label">MODE</div>
+        <ModeSelector />
+      </div>
+
+      <!-- Status indicators -->
+      <div class="sidebar-section">
+        <div class="section-label">STATUS</div>
+        <div class="status-indicators">
+          <div class="indicator" class:active={visionOn}>
+            <span class="indicator-icon">■</span>
+            <span class="indicator-label">EYE</span>
+            <span class="indicator-value">{visionOn ? 'ON' : 'OFF'}</span>
+          </div>
+          <div class="indicator" class:active={listening}>
+            <span class="indicator-icon">♫</span>
+            <span class="indicator-label">MIC</span>
+            <span class="indicator-value">{listening ? 'ON' : 'OFF'}</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
 
   <footer class="control-bar">
     <RetroButton
@@ -202,41 +227,49 @@
     z-index: 100;
   }
 
-  /* Compact top bar with logo and status */
-  .top-bar {
+  .main-row {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.25rem 0.5rem;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    font-size: 0.65rem;
-  }
-
-  .logo-compact {
-    display: flex;
-    align-items: baseline;
+    flex: 1;
     gap: 0.5rem;
+    min-height: 0;
   }
 
-  .logo-text {
-    font-size: 0.9rem;
-    font-weight: bold;
-    letter-spacing: 0.15em;
-    color: var(--text-primary);
+  .content-area {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
   }
 
-  .version {
-    color: var(--text-dim);
-    font-size: 0.55rem;
-  }
-
-  .status-compact {
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
     display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+
+  .logo-section {
+    text-align: center;
+  }
+
+  .wopr-ascii {
+    font-size: 0.6rem;
+    line-height: 1.1;
+    color: var(--text-primary);
+    text-shadow: 0 0 10px var(--text-primary), 0 0 20px rgba(0, 255, 65, 0.3);
+    margin: 0;
+    font-family: var(--font-mono);
+  }
+
+  .status-line {
+    display: flex;
+    justify-content: center;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     text-transform: uppercase;
+    margin-top: 0.3rem;
   }
 
   .status-value {
@@ -252,23 +285,56 @@
     font-family: var(--font-mono);
   }
 
-  .status-indicator {
-    color: var(--text-dim);
-    font-size: 0.55rem;
+  .sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
   }
 
-  .status-indicator.active {
+  .section-label {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.2rem;
+  }
+
+  .status-indicators {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    padding: 0.3rem 0;
+  }
+
+  .indicator.active {
     color: var(--text-primary);
   }
 
-  .mode-selector-section {
-    flex-shrink: 0;
+  .indicator.active .indicator-icon {
+    text-shadow: 0 0 8px var(--text-primary);
   }
 
-  .content-area {
+  .indicator-icon {
+    width: 1.2rem;
+    text-align: center;
+    font-size: 1rem;
+  }
+
+  .indicator-label {
     flex: 1;
-    overflow-y: auto;
-    min-height: 0;
+    text-transform: uppercase;
+  }
+
+  .indicator-value {
+    font-family: var(--font-mono);
   }
 
   .coming-soon {
@@ -291,20 +357,29 @@
 
   .control-bar {
     display: flex;
-    gap: 0.4rem;
-    padding-top: 0.4rem;
+    gap: 0.5rem;
+    padding: 0.6rem 0.3rem;
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
   }
 
   .control-bar :global(button) {
     flex: 1;
-    min-height: 44px; /* Touch-friendly minimum */
+    min-height: 56px; /* Touch-friendly */
+    font-size: 0.9rem;
   }
 
   .control-bar :global(button:first-child) {
     flex: 0;
-    min-width: 44px;
+    min-width: 56px;
+  }
+
+  .control-bar :global(.btn-label) {
+    font-size: 0.85rem;
+  }
+
+  .control-bar :global(.btn-icon) {
+    font-size: 1.3rem;
   }
 
   .glow {
