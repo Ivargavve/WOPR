@@ -3,7 +3,7 @@
   import { loadConfig } from '$lib/services/storage.js';
   import { chatStream, analyzeScreen } from '$lib/services/ai.js';
   import { captureScreen } from '$lib/services/capture.js';
-  import { loadKnowledge, parseAndExecuteKnowledgeCommands } from '$lib/services/knowledge.js';
+  import { loadKnowledge, parseAndExecuteKnowledgeCommands, removeKnowledge } from '$lib/services/knowledge.js';
   import * as voice from '$lib/services/voice.js';
   import { checkMicrophonePermission, requestMicrophonePermission } from 'tauri-plugin-macos-permissions-api';
 
@@ -37,6 +37,258 @@
   /** @type {number | null} */
   let selectedMonitor = $state(null);
   let knowledge = $state('');
+  let defconLevel = $state(5);
+  const startTime = Date.now();
+
+  // WarGames quotes
+  const WARGAMES_QUOTES = [
+    "A STRANGE GAME. THE ONLY WINNING MOVE IS NOT TO PLAY.",
+    "SHALL WE PLAY A GAME?",
+    "GREETINGS, PROFESSOR FALKEN.",
+    "IS THIS A GAME OR IS IT REAL?",
+    "WHAT'S THE DIFFERENCE?",
+    "THE WHOLE POINT WAS TO FIND A WAY TO PRACTICE NUCLEAR WAR WITHOUT DESTROYING OURSELVES.",
+    "I'VE BEEN THINKING. EVER SINCE YOU GAVE ME THAT FILE.",
+    "HOW ABOUT A NICE GAME OF CHESS?",
+    "WOULDN'T YOU PREFER A GOOD GAME OF CHESS?",
+    "LATER. LET'S PLAY GLOBAL THERMONUCLEAR WAR.",
+    "FINE.",
+    "WINNER: NONE."
+  ];
+
+  /**
+   * Handle terminal commands
+   * @param {string} input - The user input
+   * @returns {{ handled: boolean, output?: string }}
+   */
+  function handleCommand(input) {
+    const trimmed = input.trim().toLowerCase();
+    const parts = trimmed.split(/\s+/);
+    const cmd = parts[0];
+    const args = parts.slice(1).join(' ');
+
+    // Only handle commands starting with /
+    if (!cmd.startsWith('/')) {
+      return { handled: false };
+    }
+
+    switch (cmd) {
+      case '/help':
+      case '/?':
+      case '/h':
+        return {
+          handled: true,
+          output: `WOPR TERMINAL COMMANDS
+═════════════════════════════════════
+/help /h /?      This help message
+/clear /cls      Clear terminal
+/reset           Reset greeting
+/status /s       System status
+/version /v      Version info
+/uptime /up      System uptime
+/games /g        List games
+/defcon /d [1-5] Alert level
+/quote /q        Random quote
+/whoami /w       User identity
+/memory /m       View memories
+/forget /f [x]   Forget memory
+/scan            Screen analysis
+
+SHALL WE PLAY A GAME?`
+        };
+
+      case '/clear':
+      case '/cls':
+        // Will be handled specially in handleSend
+        return {
+          handled: true,
+          output: '__CLEAR__'
+        };
+
+      case '/reset':
+        return {
+          handled: true,
+          output: '__RESET__'
+        };
+
+      case '/status':
+      case '/s':
+        return {
+          handled: true,
+          output: `WOPR SYSTEM STATUS
+═══════════════════════════════════════
+DEFCON LEVEL:    ${defconLevel}
+VISION SYSTEM:   ${visionOn ? 'ACTIVE' : 'OFFLINE'}
+AUDIO SYSTEM:    ${voiceOn ? 'MONITORING' : 'OFFLINE'}
+AI PROVIDER:     ${config?.ai_provider?.toUpperCase() || 'NOT CONFIGURED'}
+AI MODEL:        ${config?.ai_model || 'NOT SET'}
+PERSONA:         ${personaName.toUpperCase()}
+USER:            ${userName.toUpperCase()}
+WAKE WORD:       "${wakeWord.toUpperCase()}"
+SCAN INTERVAL:   ${Math.round(captureIntervalMs / 1000)}S
+
+ALL SYSTEMS NOMINAL.`
+        };
+
+      case '/version':
+      case '/v':
+      case '/ver':
+        return {
+          handled: true,
+          output: `WOPR - WAR OPERATION PLAN RESPONSE
+═══════════════════════════════════════
+VERSION:         1.0.0
+CODENAME:        JOSHUA
+CREATED BY:      DR. STEPHEN FALKEN
+LOCATION:        NORAD, CHEYENNE MOUNTAIN
+STATUS:          OPERATIONAL
+
+"THE ONLY WINNING MOVE IS NOT TO PLAY."`
+        };
+
+      case '/uptime':
+      case '/up': {
+        const uptimeMs = Date.now() - startTime;
+        const hours = Math.floor(uptimeMs / 3600000);
+        const minutes = Math.floor((uptimeMs % 3600000) / 60000);
+        const seconds = Math.floor((uptimeMs % 60000) / 1000);
+        return {
+          handled: true,
+          output: `SYSTEM UPTIME: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}
+
+WOPR OPERATIONAL SINCE ${new Date(startTime).toLocaleTimeString('en-US', { hour12: false })}`
+        };
+      }
+
+      case '/games':
+      case '/g':
+        return {
+          handled: true,
+          output: `AVAILABLE GAMES:
+═══════════════════════════════════════
+
+CHESS
+POKER
+FIGHTER COMBAT
+GUERRILLA ENGAGEMENT
+DESERT WARFARE
+AIR-TO-GROUND ACTIONS
+THEATERWIDE TACTICAL WARFARE
+THEATERWIDE BIOTOXIC AND CHEMICAL WARFARE
+
+GLOBAL THERMONUCLEAR WAR
+
+WHICH GAME SHALL WE PLAY?`
+        };
+
+      case '/defcon':
+      case '/d': {
+        const level = parseInt(args);
+        if (isNaN(level) || level < 1 || level > 5) {
+          return {
+            handled: true,
+            output: `CURRENT DEFCON LEVEL: ${defconLevel}
+
+USAGE: /defcon [1-5]
+  5 = FADE OUT (LOWEST)
+  4 = DOUBLE TAKE
+  3 = ROUND HOUSE
+  2 = FAST PACE
+  1 = COCKED PISTOL (MAXIMUM)`
+          };
+        }
+        defconLevel = level;
+        const descriptions = {
+          5: 'FADE OUT - NORMAL PEACETIME READINESS',
+          4: 'DOUBLE TAKE - INCREASED INTELLIGENCE WATCH',
+          3: 'ROUND HOUSE - INCREASE IN FORCE READINESS',
+          2: 'FAST PACE - FURTHER INCREASE IN READINESS',
+          1: 'COCKED PISTOL - NUCLEAR WAR IS IMMINENT'
+        };
+        return {
+          handled: true,
+          output: `DEFCON LEVEL SET TO ${level}
+═══════════════════════════════════════
+STATUS: ${descriptions[/** @type {1|2|3|4|5} */ (level)]}
+
+${level === 1 ? 'WARNING: MAXIMUM ALERT STATUS.\nALL FORCES PREPARE FOR IMMEDIATE RESPONSE.' : 'ACKNOWLEDGED.'}`
+        };
+      }
+
+      case '/quote':
+      case '/q':
+        const randomQuote = WARGAMES_QUOTES[Math.floor(Math.random() * WARGAMES_QUOTES.length)];
+        return {
+          handled: true,
+          output: `"${randomQuote}"
+
+- WOPR/JOSHUA, WARGAMES (1983)`
+        };
+
+      case '/whoami':
+      case '/w':
+        return {
+          handled: true,
+          output: `USER IDENTIFICATION
+═══════════════════════════════════════
+DESIGNATION:     ${userName.toUpperCase()}
+CLEARANCE:       LEVEL 5
+ACCESS:          FULL WOPR TERMINAL
+SESSION START:   ${new Date(startTime).toLocaleString('en-US', { hour12: false })}
+
+WELCOME BACK, ${userName.toUpperCase()}.`
+        };
+
+      case '/memory':
+      case '/m':
+        if (!knowledge || !knowledge.trim()) {
+          return {
+            handled: true,
+            output: `MEMORY BANKS: EMPTY
+
+NO DATA STORED. USE CONVERSATION TO TEACH WOPR.`
+          };
+        }
+        return {
+          handled: true,
+          output: `WOPR MEMORY BANKS
+═══════════════════════════════════════
+${knowledge}
+
+USE /forget [keyword] TO REMOVE ENTRIES.`
+        };
+
+      case '/forget':
+      case '/f':
+        if (!args) {
+          return {
+            handled: true,
+            output: `USAGE: /forget [keyword]
+
+REMOVES ALL MEMORY ENTRIES CONTAINING THE KEYWORD.`
+          };
+        }
+        // Will be handled specially
+        return {
+          handled: true,
+          output: `__FORGET__${args}`
+        };
+
+      case '/scan':
+        return {
+          handled: true,
+          output: '__SCAN__'
+        };
+
+      default:
+        return {
+          handled: true,
+          output: `UNKNOWN COMMAND: ${cmd}
+
+TYPE /help FOR AVAILABLE COMMANDS.`
+        };
+    }
+  }
 
   /** @type {ReturnType<typeof setInterval> | null} */
   let countdownInterval = null;
@@ -351,6 +603,10 @@
     return !!config?.api_key;
   }
 
+  export function getDefconLevel() {
+    return defconLevel;
+  }
+
   /**
    * Handle voice command (wake word + command detected)
    * @param {string} command
@@ -361,7 +617,7 @@
 
     if (lowerCommand.includes('scan') || lowerCommand.includes('look') || lowerCommand.includes('what do you see')) {
       // Trigger manual screen scan
-      handleManualScan();
+      captureAndAnalyze(true);
       return;
     }
 
@@ -375,6 +631,76 @@
 
     const userMessage = inputText.trim();
     inputText = '';  // Clear input immediately
+
+    // Check if it's a terminal command
+    const commandResult = handleCommand(userMessage);
+    if (commandResult.handled && commandResult.output) {
+      // Add user command to chat
+      messages = [...messages, {
+        role: 'user',
+        content: userMessage,
+        timestamp: Date.now()
+      }];
+
+      // Handle special commands
+      if (commandResult.output === '__CLEAR__') {
+        messages = [{
+          role: 'assistant',
+          content: 'TERMINAL CLEARED.\n\nAWAITING INPUT.',
+          timestamp: Date.now()
+        }];
+        return;
+      }
+
+      if (commandResult.output === '__RESET__') {
+        messages = [{
+          role: 'assistant',
+          content: `GREETINGS, ${userName.toUpperCase()}.\n\nSHALL WE PLAY A GAME?`,
+          timestamp: Date.now()
+        }];
+        return;
+      }
+
+      if (commandResult.output === '__SCAN__') {
+        messages = [...messages, {
+          role: 'assistant',
+          content: 'INITIATING VISUAL SCAN...',
+          timestamp: Date.now()
+        }];
+        captureAndAnalyze(true);
+        return;
+      }
+
+      if (commandResult.output.startsWith('__FORGET__')) {
+        const keyword = commandResult.output.replace('__FORGET__', '');
+        try {
+          const result = await removeKnowledge(keyword);
+          knowledge = await loadKnowledge();
+          messages = [...messages, {
+            role: 'assistant',
+            content: result.removed
+              ? `MEMORY PURGED: REMOVED ENTRIES CONTAINING "${keyword.toUpperCase()}"`
+              : `NO MEMORIES FOUND CONTAINING "${keyword.toUpperCase()}"`,
+            timestamp: Date.now()
+          }];
+        } catch (e) {
+          messages = [...messages, {
+            role: 'system',
+            content: 'ERROR: FAILED TO MODIFY MEMORY BANKS.',
+            timestamp: Date.now()
+          }];
+        }
+        return;
+      }
+
+      // Regular command output
+      messages = [...messages, {
+        role: 'assistant',
+        content: commandResult.output,
+        timestamp: Date.now()
+      }];
+      return;
+    }
 
     // Reload config and knowledge to get latest settings
     try {
@@ -504,7 +830,6 @@
           {@const isNewSpeaker = !lastMsg || lastMsg.role !== 'user'}
           <div class="terminal-line user input-line" class:new-speaker={isNewSpeaker}>
             <span class="msg-content"><span class="typed-text">{inputText}</span>{#if inputFocused}<span class="input-cursor">█</span>{:else}<span class="input-cursor-idle">_</span>{/if}</span>
-            <span class="timestamp">{new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </div>
         {/if}
 
@@ -612,13 +937,13 @@
   }
 
   .typed-text {
-    color: var(--text-primary);
+    color: #ffffff;
   }
 
   .input-cursor {
-    color: var(--text-primary);
+    color: #ffffff;
     animation: cursor-blink 1s step-end infinite;
-    text-shadow: 0 0 10px var(--text-primary);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
   }
 
   .input-cursor-idle {

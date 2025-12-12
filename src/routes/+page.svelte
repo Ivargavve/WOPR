@@ -4,6 +4,7 @@
   import { getCurrentMode, getCurrentModeInfo } from '$lib/stores/mode.svelte.js';
   import { AssistantMode, MonitorMode, PomodoroMode } from '$lib/modes';
   import { loadConfig, saveConfig } from '$lib/services/storage.js';
+  import { loadKnowledge } from '$lib/services/knowledge.js';
   import * as permissions from '$lib/services/permissions.js';
 
   let time = $state('');
@@ -11,11 +12,37 @@
   let visionOn = $state(false);
   let listening = $state(false);
   let showSettings = $state(false);
+  let defconLevel = $state(5);
+  let memoryItems = $state(/** @type {string[]} */ ([]));
+  let showMemory = $state(false);
   /** @type {import('$lib/services/storage.js').AppConfig | null} */
   let currentConfig = $state(null);
 
   /** @type {import('$lib/modes').AssistantMode | null} */
   let assistantModeRef = $state(null);
+
+  // Reload memory periodically
+  async function reloadMemory() {
+    try {
+      const knowledge = await loadKnowledge();
+      if (knowledge && knowledge.trim()) {
+        memoryItems = knowledge.split('\n')
+          .filter(line => line.trim())
+          .map(line => line.replace(/^[-*]\s*/, '').trim());
+      } else {
+        memoryItems = [];
+      }
+    } catch (e) {
+      console.error('Failed to load memory:', e);
+    }
+  }
+
+  // Get defcon from assistant mode
+  function syncDefcon() {
+    if (assistantModeRef) {
+      defconLevel = assistantModeRef.getDefconLevel();
+    }
+  }
 
   const currentMode = $derived(getCurrentMode());
   const modeInfo = $derived(getCurrentModeInfo());
@@ -40,16 +67,22 @@
       }, 1500);
     });
 
-    // Update time every second
+    // Update time every second and sync state
     const updateTime = () => {
       const now = new Date();
       time = now.toLocaleTimeString('en-US', { hour12: false });
+      syncDefcon();
     };
     updateTime();
     timeInterval = setInterval(updateTime, 1000);
 
+    // Load memory initially and periodically
+    reloadMemory();
+    const memoryInterval = setInterval(reloadMemory, 5000);
+
     return () => {
       if (timeInterval) clearInterval(timeInterval);
+      clearInterval(memoryInterval);
     };
   });
 
@@ -112,21 +145,48 @@
   <div class="scanlines"></div>
 
   <div class="main-row">
-    <!-- Chat area - left side -->
-    <section class="content-area">
-      {#if currentMode === 'assistant'}
-        <AssistantMode bind:this={assistantModeRef} {visionOn} voiceOn={listening} />
-      {:else if currentMode === 'monitor'}
-        <MonitorMode />
-      {:else if currentMode === 'pomodoro'}
-        <PomodoroMode />
-      {:else}
-        <div class="coming-soon">
-          <p class="mode-title">[{modeInfo.icon}] {modeInfo.name}</p>
-          <p class="dim">> Coming soon...</p>
-        </div>
-      {/if}
-    </section>
+    <!-- Left column: content + control bar -->
+    <div class="left-column">
+      <section class="content-area">
+        {#if currentMode === 'assistant'}
+          <AssistantMode bind:this={assistantModeRef} {visionOn} voiceOn={listening} />
+        {:else if currentMode === 'monitor'}
+          <MonitorMode />
+        {:else if currentMode === 'pomodoro'}
+          <PomodoroMode />
+        {:else}
+          <div class="coming-soon">
+            <p class="mode-title">[{modeInfo.icon}] {modeInfo.name}</p>
+            <p class="dim">> Coming soon...</p>
+          </div>
+        {/if}
+      </section>
+
+      <footer class="control-bar">
+        <RetroButton
+          icon="@"
+          onclick={handleScan}
+          disabled={currentMode !== 'assistant'}
+        />
+        <RetroButton
+          icon="■"
+          label="VISION"
+          active={visionOn}
+          onclick={toggleVision}
+        />
+        <RetroButton
+          icon="♫"
+          label="MIC"
+          active={listening}
+          onclick={toggleListening}
+        />
+        <RetroButton
+          icon="⚙"
+          label="CONFIG"
+          onclick={toggleSettings}
+        />
+      </footer>
+    </div>
 
     <!-- Sidebar - right side -->
     <aside class="sidebar">
@@ -151,6 +211,21 @@
         <ModeSelector />
       </div>
 
+      <!-- DEFCON Level -->
+      <div class="sidebar-section">
+        <div class="section-label">DEFCON</div>
+        <div class="defcon-display defcon-{defconLevel}">
+          <span class="defcon-number">{defconLevel}</span>
+          <span class="defcon-status">
+            {#if defconLevel === 5}FADE OUT
+            {:else if defconLevel === 4}DOUBLE TAKE
+            {:else if defconLevel === 3}ROUND HOUSE
+            {:else if defconLevel === 2}FAST PACE
+            {:else}COCKED PISTOL{/if}
+          </span>
+        </div>
+      </div>
+
       <!-- Status indicators -->
       <div class="sidebar-section">
         <div class="section-label">STATUS</div>
@@ -167,33 +242,41 @@
           </div>
         </div>
       </div>
+
+      <!-- Memory Bank -->
+      <div class="sidebar-section">
+        <button class="section-label memory-toggle" onclick={() => showMemory = !showMemory}>
+          MEMORY [{memoryItems.length}] {showMemory ? '▲' : '▼'}
+        </button>
+        {#if showMemory}
+          <div class="memory-list">
+            {#if memoryItems.length === 0}
+              <div class="memory-empty">NO DATA</div>
+            {:else}
+              {#each memoryItems as item, i}
+                <div class="memory-item">
+                  <span class="memory-index">{i + 1}.</span>
+                  <span class="memory-text">{item}</span>
+                </div>
+              {/each}
+            {/if}
+          </div>
+        {/if}
+      </div>
+
+      <!-- Tips -->
+      <div class="sidebar-section tips-section">
+        <div class="tips-box">
+          <div class="tips-title">TERMINAL</div>
+          <div class="tips-content">
+            Type <span class="cmd">/help</span> for commands
+            <br/><span class="cmd">/memory</span> view memories
+            <br/><span class="cmd">/defcon 1-5</span> alert level
+          </div>
+        </div>
+      </div>
     </aside>
   </div>
-
-  <footer class="control-bar">
-    <RetroButton
-      icon="@"
-      onclick={handleScan}
-      disabled={currentMode !== 'assistant'}
-    />
-    <RetroButton
-      icon="■"
-      label="VISION"
-      active={visionOn}
-      onclick={toggleVision}
-    />
-    <RetroButton
-      icon="♫"
-      label="MIC"
-      active={listening}
-      onclick={toggleListening}
-    />
-    <RetroButton
-      icon="⚙"
-      label="CONFIG"
-      onclick={toggleSettings}
-    />
-  </footer>
 
   <SettingsPanel show={showSettings} onclose={handleSettingsClose} />
 </main>
@@ -231,6 +314,13 @@
     display: flex;
     flex: 1;
     gap: 0.5rem;
+    min-height: 0;
+  }
+
+  .left-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     min-height: 0;
   }
 
@@ -337,6 +427,144 @@
     font-family: var(--font-mono);
   }
 
+  /* DEFCON Display */
+  .defcon-display {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-panel);
+  }
+
+  .defcon-number {
+    font-size: 1.8rem;
+    font-weight: bold;
+    font-family: var(--font-mono);
+    min-width: 2rem;
+    text-align: center;
+  }
+
+  .defcon-status {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+  }
+
+  .defcon-5 { color: var(--text-primary); }
+  .defcon-5 .defcon-number { text-shadow: 0 0 10px var(--text-primary); }
+
+  .defcon-4 { color: #7fff7f; }
+  .defcon-4 .defcon-number { text-shadow: 0 0 10px #7fff7f; }
+
+  .defcon-3 { color: #ffff00; }
+  .defcon-3 .defcon-number { text-shadow: 0 0 10px #ffff00; }
+
+  .defcon-2 { color: #ffa500; }
+  .defcon-2 .defcon-number { text-shadow: 0 0 10px #ffa500; }
+
+  .defcon-1 { color: #ff4444; }
+  .defcon-1 .defcon-number { text-shadow: 0 0 15px #ff4444, 0 0 30px #ff4444; }
+  .defcon-1 { animation: defcon-alert 1s ease-in-out infinite; }
+
+  @keyframes defcon-alert {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  /* Memory Section */
+  .memory-toggle {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    text-align: left;
+    padding: 0;
+    margin-bottom: 0.3rem;
+  }
+
+  .memory-toggle:hover {
+    color: var(--text-primary);
+  }
+
+  .memory-list {
+    max-height: 120px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    background: var(--bg-panel);
+    padding: 0.3rem;
+  }
+
+  .memory-item {
+    display: flex;
+    gap: 0.3rem;
+    font-size: 0.6rem;
+    padding: 0.2rem 0;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-dim);
+  }
+
+  .memory-item:last-child {
+    border-bottom: none;
+  }
+
+  .memory-index {
+    color: var(--text-primary);
+    opacity: 0.6;
+    min-width: 1.2rem;
+  }
+
+  .memory-text {
+    flex: 1;
+    word-break: break-word;
+  }
+
+  .memory-empty {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    opacity: 0.5;
+    text-align: center;
+    padding: 0.5rem;
+  }
+
+  /* Tips Section */
+  .tips-section {
+    margin-top: auto;
+  }
+
+  .tips-box {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    background: var(--bg-panel);
+  }
+
+  .tips-title {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.2rem;
+  }
+
+  .tips-content {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .tips-content .cmd {
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+  }
+
   .coming-soon {
     display: flex;
     flex-direction: column;
@@ -358,9 +586,10 @@
   .control-bar {
     display: flex;
     gap: 0.5rem;
-    padding: 0.6rem 0.3rem;
+    padding: 0.5rem 0;
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
+    margin-top: auto;
   }
 
   .control-bar :global(button) {
