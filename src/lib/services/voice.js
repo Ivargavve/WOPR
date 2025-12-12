@@ -1,6 +1,6 @@
 /**
  * Voice Input Service using Web Speech API
- * Supports always-listening wake word detection
+ * Supports always-listening wake word detection with smart command capture
  */
 
 /** @type {any} */
@@ -8,6 +8,12 @@ let recognition = null;
 let isListening = false;
 let wakeWord = 'joshua';
 let alwaysListening = false;
+
+// Command mode state
+let inCommandMode = false;
+let commandBuffer = '';
+let silenceTimeout = null;
+const SILENCE_DELAY_MS = 2000; // 2 seconds of silence before processing
 
 /** @type {ReturnType<typeof setTimeout> | null} */
 let restartTimeout = null;
@@ -27,6 +33,9 @@ let onEndCallback = null;
 /** @type {((detected: boolean, transcript: string) => void) | null} */
 let onWakeWordCallback = null;
 
+/** @type {((listening: boolean) => void) | null} */
+let onCommandModeCallback = null;
+
 /**
  * Check if speech recognition is supported
  * @returns {boolean}
@@ -34,6 +43,59 @@ let onWakeWordCallback = null;
 export function isSupported() {
   // @ts-ignore - webkitSpeechRecognition is vendor-prefixed
   return 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+}
+
+/**
+ * Reset the silence timer (called when user is speaking)
+ */
+function resetSilenceTimer() {
+  if (silenceTimeout) {
+    clearTimeout(silenceTimeout);
+  }
+
+  silenceTimeout = setTimeout(() => {
+    // Silence detected - process the command
+    if (inCommandMode && commandBuffer.trim()) {
+      console.log('Silence detected, processing command:', commandBuffer);
+      if (onCommandCallback) {
+        onCommandCallback(commandBuffer.trim());
+      }
+    }
+    exitCommandMode();
+  }, SILENCE_DELAY_MS);
+}
+
+/**
+ * Enter command listening mode
+ */
+function enterCommandMode() {
+  console.log('Entering command mode...');
+  inCommandMode = true;
+  commandBuffer = '';
+
+  if (onCommandModeCallback) {
+    onCommandModeCallback(true);
+  }
+
+  resetSilenceTimer();
+}
+
+/**
+ * Exit command listening mode
+ */
+function exitCommandMode() {
+  console.log('Exiting command mode');
+  inCommandMode = false;
+  commandBuffer = '';
+
+  if (silenceTimeout) {
+    clearTimeout(silenceTimeout);
+    silenceTimeout = null;
+  }
+
+  if (onCommandModeCallback) {
+    onCommandModeCallback(false);
+  }
 }
 
 /**
@@ -57,7 +119,7 @@ export function init(options = {}) {
   recognition = new SpeechRecognition();
 
   recognition.lang = options.language || 'en-US';
-  recognition.continuous = true;  // Always continuous now
+  recognition.continuous = true;
   recognition.interimResults = true;
 
   recognition.onresult = (/** @type {any} */ event) => {
@@ -67,28 +129,60 @@ export function init(options = {}) {
       const result = results[i];
       const transcript = result[0].transcript.trim().toLowerCase();
 
-      if (result.isFinal) {
-        // Check if wake word is in the transcript
-        const wakeWordIndex = transcript.indexOf(wakeWord);
+      // Check for wake word in transcript
+      const wakeWordIndex = transcript.indexOf(wakeWord);
+      const hasWakeWord = wakeWordIndex !== -1;
 
-        if (wakeWordIndex !== -1) {
-          // Extract the command after the wake word
-          const afterWakeWord = transcript.slice(wakeWordIndex + wakeWord.length).trim();
+      if (inCommandMode) {
+        // We're in command mode - collecting the command
+        // Extract text after wake word if present, otherwise use full transcript
+        let commandText = transcript;
+        if (hasWakeWord) {
+          commandText = transcript.slice(wakeWordIndex + wakeWord.length).trim();
+        }
 
-          // Notify that wake word was detected
+        if (result.isFinal) {
+          // Final result - update command buffer
+          if (commandText) {
+            commandBuffer = commandText;
+            console.log('Command buffer (final):', commandBuffer);
+          }
+          resetSilenceTimer();
+        } else {
+          // Interim result - user is still speaking
+          if (commandText) {
+            commandBuffer = commandText; // Update with latest
+          }
+          resetSilenceTimer();
+        }
+      } else {
+        // Not in command mode - looking for wake word
+        if (hasWakeWord) {
+          // Wake word detected! Enter command mode immediately
+          console.log('Wake word detected, entering command mode');
+
           if (onWakeWordCallback) {
             onWakeWordCallback(true, transcript);
           }
 
-          // If there's a command after the wake word, process it
-          if (afterWakeWord && onCommandCallback) {
-            onCommandCallback(afterWakeWord);
+          // Extract any command text after the wake word
+          const afterWakeWord = transcript.slice(wakeWordIndex + wakeWord.length).trim();
+
+          // Enter command mode
+          enterCommandMode();
+
+          // If there's already text after wake word, add it to buffer
+          if (afterWakeWord) {
+            commandBuffer = afterWakeWord;
+            console.log('Initial command buffer:', commandBuffer);
           }
-        }
-      } else {
-        // Interim result - check if wake word is being said
-        if (transcript.includes(wakeWord) && onWakeWordCallback) {
-          onWakeWordCallback(true, transcript);
+
+          // If this is a final result with a complete command, process it
+          if (result.isFinal && afterWakeWord) {
+            // User said wake word + command in one breath
+            // Give a brief moment for more speech, then process
+            resetSilenceTimer();
+          }
         }
       }
     }
@@ -97,9 +191,13 @@ export function init(options = {}) {
   recognition.onerror = (/** @type {any} */ event) => {
     console.error('Speech recognition error:', event.error);
 
+    // Exit command mode on error
+    if (inCommandMode) {
+      exitCommandMode();
+    }
+
     // Don't report "no-speech" or "aborted" as errors in always-listening mode
     if (alwaysListening && (event.error === 'no-speech' || event.error === 'aborted')) {
-      // Just restart silently
       scheduleRestart();
       return;
     }
@@ -119,6 +217,12 @@ export function init(options = {}) {
 
   recognition.onend = () => {
     isListening = false;
+
+    // Exit command mode if recognition ends
+    if (inCommandMode) {
+      exitCommandMode();
+    }
+
     if (onEndCallback) {
       onEndCallback();
     }
@@ -145,7 +249,6 @@ function scheduleRestart() {
       try {
         recognition.start();
       } catch (e) {
-        // May already be started, ignore
         console.debug('Recognition restart:', e);
       }
     }
@@ -178,11 +281,15 @@ export function startListening() {
  * Stop listening completely
  */
 export function stopListening() {
-  alwaysListening = false;  // Disable auto-restart
+  alwaysListening = false;
 
   if (restartTimeout) {
     clearTimeout(restartTimeout);
     restartTimeout = null;
+  }
+
+  if (inCommandMode) {
+    exitCommandMode();
   }
 
   if (recognition && isListening) {
@@ -245,7 +352,15 @@ export function getIsAlwaysListening() {
 }
 
 /**
- * Set callback for when a command is recognized (wake word + command)
+ * Check if in command mode (waiting for command after wake word)
+ * @returns {boolean}
+ */
+export function getIsInCommandMode() {
+  return inCommandMode;
+}
+
+/**
+ * Set callback for when a command is recognized
  * @param {(text: string) => void} callback
  */
 export function onCommand(callback) {
@@ -258,6 +373,14 @@ export function onCommand(callback) {
  */
 export function onWakeWord(callback) {
   onWakeWordCallback = callback;
+}
+
+/**
+ * Set callback for command mode changes
+ * @param {(listening: boolean) => void} callback
+ */
+export function onCommandMode(callback) {
+  onCommandModeCallback = callback;
 }
 
 /**
@@ -295,6 +418,10 @@ export function destroy() {
     restartTimeout = null;
   }
 
+  if (inCommandMode) {
+    exitCommandMode();
+  }
+
   if (recognition) {
     try {
       recognition.stop();
@@ -309,5 +436,6 @@ export function destroy() {
   onStartCallback = null;
   onEndCallback = null;
   onWakeWordCallback = null;
+  onCommandModeCallback = null;
   isListening = false;
 }

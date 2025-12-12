@@ -28,6 +28,7 @@
   let isAnalyzing = $state(false);
   let isListening = $state(false);
   let wakeWordHeard = $state(false);
+  let inCommandMode = $state(false);
   let lastCaptureTime = $state(0);
   let nextScanCountdown = $state(0);
   let personaName = $state('Joshua');
@@ -105,21 +106,15 @@
       console.log('Microphone permission status:', hasPermission);
 
       if (!hasPermission) {
-        // Request permission
+        // Request permission silently (macOS will show its own dialog)
         console.log('Requesting microphone permission...');
-        messages = [...messages, {
-          role: 'system',
-          content: 'Requesting microphone permission...',
-          timestamp: Date.now()
-        }];
-
         const granted = await requestMicrophonePermission();
         console.log('Permission granted:', granted);
 
         if (!granted) {
           messages = [...messages, {
             role: 'system',
-            content: 'Microphone permission denied. Please enable in System Settings > Privacy & Security > Microphone.',
+            content: 'Microphone permission denied. Enable in System Settings > Privacy & Security > Microphone.',
             timestamp: Date.now()
           }];
           return;
@@ -170,6 +165,10 @@
               timestamp: Date.now()
             }];
           }
+        });
+        voice.onCommandMode((listening) => {
+          inCommandMode = listening;
+          console.log('Command mode:', listening);
         });
         voice.startAlwaysListening(wakeWord);
       }
@@ -472,8 +471,10 @@
           {/if}
         </span>
         <span class="status-divider">|</span>
-        <span class="status-item" class:active={isListening} class:wake-word-heard={wakeWordHeard} class:waiting={voiceOn && !isListening}>
-          {#if wakeWordHeard}
+        <span class="status-item" class:active={isListening} class:command-mode={inCommandMode} class:wake-word-heard={wakeWordHeard} class:waiting={voiceOn && !isListening}>
+          {#if inCommandMode}
+            MIC:SPEAK...
+          {:else if wakeWordHeard}
             MIC:HEARD!
           {:else if isListening}
             MIC:ON
@@ -674,6 +675,11 @@
   .status-item.wake-word-heard {
     color: var(--accent-cyan);
     animation: pulse 0.5s ease-in-out;
+  }
+
+  .status-item.command-mode {
+    color: var(--accent-cyan);
+    animation: blink 0.5s step-end infinite;
   }
 
   .status-item.dim {
