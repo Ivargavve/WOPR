@@ -73,7 +73,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             persona_name: "Joshua".to_string(),
-            user_name: "Player".to_string(),
+            user_name: "Falken".to_string(),
             ai_provider: "openai".to_string(),
             api_key: None,
             ai_model: "gpt-4o-mini".to_string(),

@@ -32,7 +32,7 @@
   let lastCaptureTime = $state(0);
   let nextScanCountdown = $state(0);
   let personaName = $state('Joshua');
-  let userName = $state('Player');
+  let userName = $state('Falken');
   let wakeWord = $state('Joshua');
   let captureIntervalMs = $state(30000);
   /** @type {number | null} */
@@ -51,15 +51,34 @@
   /** @type {HTMLDivElement | null} */
   let messagesContainer = null;
 
-  // Scroll to bottom when messages change
+  /** @type {HTMLInputElement | null} */
+  let hiddenInput = null;
+
+  let inputFocused = $state(false);
+
+  // Scroll to bottom when messages change or content updates
   $effect(() => {
-    if (messagesContainer && messages.length) {
-      // Use requestAnimationFrame to ensure DOM has updated
-      requestAnimationFrame(() => {
+    // Track both messages array and last message content for streaming updates
+    const lastMsg = messages[messages.length - 1];
+    const contentLength = lastMsg?.content?.length || 0;
+
+    // Trigger on any change
+    if (messagesContainer && (messages.length || contentLength)) {
+      // Use setTimeout to ensure DOM has updated
+      setTimeout(() => {
         if (messagesContainer) {
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
-      });
+      }, 10);
+    }
+  });
+
+  // Auto-refocus input after response completes
+  $effect(() => {
+    if (!isLoading && hiddenInput) {
+      setTimeout(() => {
+        hiddenInput?.focus();
+      }, 50);
     }
   });
 
@@ -203,7 +222,7 @@
       config = await loadConfig();
       if (config) {
         personaName = config.persona_name || 'Joshua';
-        userName = config.user_name || 'Player';
+        userName = config.user_name || 'Falken';
         wakeWord = config.wake_word || 'Joshua';
         captureIntervalMs = config.capture_interval_ms || 30000;
         selectedMonitor = config.selected_monitor ?? null;
@@ -219,9 +238,9 @@
       console.error('Failed to load knowledge:', e);
     }
 
-    // Update initial message
+    // Update initial message - WarGames style greeting
     messages = [
-      { role: 'system', content: `${personaName} online. Toggle vision/voice with buttons below.`, timestamp: Date.now() }
+      { role: 'assistant', content: `GREETINGS, ${userName.toUpperCase()}.\n\nSHALL WE PLAY A GAME?`, timestamp: Date.now() }
     ];
 
     // Note: Vision and voice are started by $effect() reactively based on props
@@ -318,10 +337,19 @@
   }
 
   /**
-   * Manual trigger for screen scan
+   * Manual trigger for screen scan - exported for parent component
    */
-  function handleManualScan() {
+  export function triggerScan() {
     captureAndAnalyze(true);
+  }
+
+  // Export state for parent to check
+  export function getIsAnalyzing() {
+    return isAnalyzing;
+  }
+
+  export function getHasApiKey() {
+    return !!config?.api_key;
   }
 
   /**
@@ -354,7 +382,7 @@
       config = await loadConfig();
       if (config) {
         personaName = config.persona_name || 'Joshua';
-        userName = config.user_name || 'Player';
+        userName = config.user_name || 'Falken';
         selectedMonitor = config.selected_monitor ?? null;
       }
       knowledge = await loadKnowledge();
@@ -458,7 +486,7 @@
 
 <div class="assistant-mode">
   <div class="chat-panel-wrapper">
-    <RetroPanel title={personaName.toUpperCase()}>
+    <RetroPanel>
       <!-- Compact status bar -->
       <div class="status-bar">
         <span class="status-item" class:active={visionOn} class:scanning={isAnalyzing}>
@@ -490,48 +518,36 @@
         {/if}
       </div>
 
-      <div class="message-area" bind:this={messagesContainer}>
-        {#each messages as message}
-          <div class="message" class:user={message.role === 'user'} class:assistant={message.role === 'assistant'} class:system={message.role === 'system'}>
-            <span class="message-prefix">
-              {#if message.role === 'user'}
-                YOU>
-              {:else if message.role === 'assistant'}
-                {personaName.toUpperCase()}>
-              {:else}
-                SYS>
-              {/if}
-            </span>
-            <span class="message-content">{message.content}</span>
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="message-area" bind:this={messagesContainer} onclick={() => hiddenInput?.focus()}>
+        {#each messages as message, i}
+          <div class="terminal-line">
+            <span class="timestamp">{new Date(message.timestamp).toLocaleTimeString('en-US', { hour12: false })}</span>
+            <span class="msg-content">{message.content}{#if message.role === 'assistant' && isLoading && i === messages.length - 1}<span class="loading-cursor">█</span>{/if}</span>
           </div>
         {/each}
+
+        <!-- Input line at bottom -->
+        {#if !isLoading}
+          <div class="terminal-line input-line">
+            <span class="timestamp">{new Date().toLocaleTimeString('en-US', { hour12: false })}</span>
+            <span class="msg-content"><span class="typed-text">{inputText}</span>{#if inputFocused}<span class="input-cursor">█</span>{:else}<span class="input-cursor-idle">_</span>{/if}</span>
+          </div>
+        {/if}
+
+        <input
+          type="text"
+          class="chat-input-hidden"
+          bind:value={inputText}
+          bind:this={hiddenInput}
+          onkeydown={handleKeydown}
+          onfocus={() => inputFocused = true}
+          onblur={() => inputFocused = false}
+          disabled={isLoading}
+        />
       </div>
     </RetroPanel>
-  </div>
-
-  <div class="input-area">
-    <div class="input-row">
-      <RetroButton
-        icon="@"
-        onclick={handleManualScan}
-        disabled={isAnalyzing || !config?.api_key}
-        title="Scan screen now"
-      />
-      <input
-        type="text"
-        class="chat-input"
-        placeholder="> Type or speak..."
-        bind:value={inputText}
-        onkeydown={handleKeydown}
-        disabled={isLoading}
-      />
-      <RetroButton
-        icon=">>"
-        onclick={handleSend}
-        disabled={isLoading || !inputText.trim()}
-        variant="primary"
-      />
-    </div>
   </div>
 </div>
 
@@ -539,7 +555,7 @@
   .assistant-mode {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.4rem;
     height: 100%;
   }
 
@@ -563,6 +579,7 @@
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
+    padding: 0.3rem;
   }
 
   .message-area {
@@ -571,89 +588,86 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .message {
-    display: flex;
-    gap: 0.5rem;
-    font-size: 0.8rem;
-    line-height: 1.4;
-    word-break: break-word;
-  }
-
-  .message-prefix {
-    color: var(--text-dim);
-    flex-shrink: 0;
-    font-weight: bold;
-  }
-
-  .message.user .message-prefix {
-    color: var(--accent-cyan);
-  }
-
-  .message.assistant .message-prefix {
-    color: var(--text-primary);
-  }
-
-  .message.system .message-prefix {
-    color: var(--accent-warning);
-  }
-
-  .message-content {
-    color: var(--text-primary);
-  }
-
-  .message.system .message-content {
-    color: var(--text-dim);
-  }
-
-  @keyframes blink {
-    50% { opacity: 0; }
-  }
-
-  .input-area {
-    flex-shrink: 0;
-  }
-
-  .input-row {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .chat-input {
-    flex: 1;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
+    padding: 0.5rem;
+    cursor: text;
     font-family: var(--font-mono);
-    font-size: 0.875rem;
-    padding: 0.75rem;
-    outline: none;
-    min-width: 0;
   }
 
-  .chat-input:focus {
-    border-color: var(--text-primary);
-    box-shadow: var(--glow-green);
+  /* Terminal line - like old WOPR */
+  .terminal-line {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    margin-bottom: 0.4rem;
+    width: 100%;
+    text-transform: uppercase;
   }
 
-  .chat-input::placeholder {
+  .terminal-line:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .timestamp {
+    color: var(--text-dim);
+    flex-shrink: 0;
+    font-size: 0.65rem;
+    opacity: 0.7;
+  }
+
+  .msg-content {
+    color: var(--text-primary);
+    text-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
+    white-space: pre-wrap;
+    word-break: break-word;
+    flex: 1;
+  }
+
+  /* Input line styling */
+  .input-line {
+    margin-bottom: 0;
+  }
+
+  .typed-text {
+    color: var(--text-primary);
+  }
+
+  .input-cursor {
+    color: var(--text-primary);
+    animation: cursor-blink 1s step-end infinite;
+    text-shadow: 0 0 10px var(--text-primary);
+  }
+
+  .input-cursor-idle {
     color: var(--text-dim);
   }
 
-  .chat-input:disabled {
-    opacity: 0.6;
+  .loading-cursor {
+    animation: cursor-blink 0.5s step-end infinite;
+    color: var(--text-primary);
+  }
+
+  @keyframes cursor-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  .chat-input-hidden {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
   }
 
   .status-bar {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0;
-    margin-bottom: 0.5rem;
+    gap: 0.4rem;
+    padding: 0.15rem 0;
+    margin-bottom: 0.25rem;
     border-bottom: 1px solid var(--border-color);
-    font-size: 0.65rem;
+    font-size: 0.5rem;
     font-family: var(--font-mono);
     text-transform: uppercase;
   }

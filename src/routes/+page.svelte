@@ -14,6 +14,9 @@
   /** @type {import('$lib/services/storage.js').AppConfig | null} */
   let currentConfig = $state(null);
 
+  /** @type {import('$lib/modes').AssistantMode | null} */
+  let assistantModeRef = $state(null);
+
   const currentMode = $derived(getCurrentMode());
   const modeInfo = $derived(getCurrentModeInfo());
 
@@ -97,33 +100,31 @@
       console.error('Failed to reload config:', e);
     }
   }
+
+  function handleScan() {
+    if (assistantModeRef) {
+      assistantModeRef.triggerScan();
+    }
+  }
 </script>
 
 <main class="wopr-container">
   <div class="scanlines"></div>
 
-  <header class="wopr-header">
-    <pre class="logo glow">
-██╗    ██╗ ██████╗ ██████╗ ██████╗
-██║    ██║██╔═══██╗██╔══██╗██╔══██╗
-██║ █╗ ██║██║   ██║██████╔╝██████╔╝
-██║███╗██║██║   ██║██╔═══╝ ██╔══██╗
-╚███╔███╔╝╚██████╔╝██║     ██║  ██║
- ╚══╝╚══╝  ╚═════╝ ╚═╝     ╚═╝  ╚═╝
-    </pre>
-    <div class="version">v0.1.0</div>
+  <header class="top-bar">
+    <div class="logo-compact">
+      <span class="logo-text glow">WOPR</span>
+      <span class="version">v0.1.0</span>
+      <span class="status-sep">|</span>
+      <span class="status-indicator" class:active={visionOn}>EYE:{visionOn ? 'ON' : 'OFF'}</span>
+      <span class="status-indicator" class:active={listening}>MIC:{listening ? 'ON' : 'OFF'}</span>
+    </div>
+    <div class="status-compact">
+      <span class="status-value glow">{status}</span>
+      <span class="status-sep">|</span>
+      <span class="time-value">{time}</span>
+    </div>
   </header>
-
-  <section class="status-bar">
-    <div class="status-item">
-      <span class="label">STATUS:</span>
-      <span class="value glow">{status}</span>
-    </div>
-    <div class="status-item">
-      <span class="label">TIME:</span>
-      <span class="value">{time}</span>
-    </div>
-  </section>
 
   <section class="mode-selector-section">
     <ModeSelector />
@@ -131,7 +132,7 @@
 
   <section class="content-area">
     {#if currentMode === 'assistant'}
-      <AssistantMode {visionOn} voiceOn={listening} />
+      <AssistantMode bind:this={assistantModeRef} {visionOn} voiceOn={listening} />
     {:else if currentMode === 'monitor'}
       <MonitorMode />
     {:else if currentMode === 'pomodoro'}
@@ -146,14 +147,19 @@
 
   <footer class="control-bar">
     <RetroButton
+      icon="@"
+      onclick={handleScan}
+      disabled={currentMode !== 'assistant'}
+    />
+    <RetroButton
       icon="■"
-      label={visionOn ? 'VISION ON' : 'VISION OFF'}
+      label="VISION"
       active={visionOn}
       onclick={toggleVision}
     />
     <RetroButton
       icon="♫"
-      label={listening ? 'LISTENING' : 'MUTED'}
+      label="MIC"
       active={listening}
       onclick={toggleListening}
     />
@@ -173,10 +179,10 @@
     flex-direction: column;
     height: 100vh;
     width: 100%;
-    padding: 1rem;
+    padding: 0.5rem;
     position: relative;
     background: var(--bg-primary);
-    gap: 0.75rem;
+    gap: 0.4rem;
   }
 
   .scanlines {
@@ -196,42 +202,62 @@
     z-index: 100;
   }
 
-  .wopr-header {
-    text-align: center;
+  /* Compact top bar with logo and status */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    font-size: 0.65rem;
   }
 
-  .logo {
-    font-size: 0.45rem;
-    line-height: 1.1;
+  .logo-compact {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  .logo-text {
+    font-size: 0.9rem;
+    font-weight: bold;
+    letter-spacing: 0.15em;
     color: var(--text-primary);
-    margin: 0;
   }
 
   .version {
     color: var(--text-dim);
-    font-size: 0.7rem;
-    margin-top: 0.25rem;
+    font-size: 0.55rem;
   }
 
-  .status-bar {
+  .status-compact {
     display: flex;
-    justify-content: space-between;
-    padding: 0.5rem 0.75rem;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    font-size: 0.75rem;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.6rem;
+    text-transform: uppercase;
   }
 
-  .status-item {
-    display: flex;
-    gap: 0.5rem;
+  .status-value {
+    color: var(--text-primary);
   }
 
-  .label {
+  .status-sep {
+    color: var(--border-color);
+  }
+
+  .time-value {
     color: var(--text-dim);
+    font-family: var(--font-mono);
   }
 
-  .value {
+  .status-indicator {
+    color: var(--text-dim);
+    font-size: 0.55rem;
+  }
+
+  .status-indicator.active {
     color: var(--text-primary);
   }
 
@@ -255,7 +281,7 @@
   }
 
   .mode-title {
-    font-size: 1.25rem;
+    font-size: 1rem;
     color: var(--text-primary);
   }
 
@@ -265,14 +291,20 @@
 
   .control-bar {
     display: flex;
-    gap: 0.5rem;
-    padding-top: 0.75rem;
+    gap: 0.4rem;
+    padding-top: 0.4rem;
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
   }
 
   .control-bar :global(button) {
     flex: 1;
+    min-height: 44px; /* Touch-friendly minimum */
+  }
+
+  .control-bar :global(button:first-child) {
+    flex: 0;
+    min-width: 44px;
   }
 
   .glow {

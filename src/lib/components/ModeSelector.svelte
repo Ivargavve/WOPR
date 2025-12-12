@@ -62,14 +62,14 @@
   .current-mode {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.35rem 0.5rem;
     background: var(--bg-panel);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     font-family: var(--font-mono);
-    font-size: 0.875rem;
+    font-size: 0.7rem;
     cursor: pointer;
     transition: all 0.2s ease;
   }
@@ -84,7 +84,7 @@
   }
 
   .mode-icon {
-    font-size: 1.25rem;
+    font-size: 0.9rem;
   }
 
   .mode-name {
@@ -95,7 +95,7 @@
   }
 
   .dropdown-arrow {
-    font-size: 0.6rem;
+    font-size: 0.5rem;
     color: var(--text-dim);
   }
 
@@ -108,16 +108,16 @@
     border: 1px solid var(--text-primary);
     border-top: none;
     z-index: 100;
-    max-height: 300px;
+    max-height: 250px;
     overflow-y: auto;
   }
 
   .mode-option {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.5rem;
     background: transparent;
     border: none;
     border-bottom: 1px solid var(--border-color);
@@ -143,8 +143,8 @@
   }
 
   .option-icon {
-    font-size: 1.25rem;
-    width: 2rem;
+    font-size: 0.9rem;
+    width: 1.5rem;
     text-align: center;
   }
 
@@ -152,17 +152,17 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.1rem;
   }
 
   .option-name {
-    font-size: 0.875rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   .option-desc {
-    font-size: 0.65rem;
+    font-size: 0.55rem;
     color: var(--text-dim);
     opacity: 0.8;
   }
@@ -170,5 +170,6 @@
   .active-indicator {
     color: var(--text-primary);
     text-shadow: 0 0 8px var(--text-primary);
+    font-size: 0.6rem;
   }
 </style>

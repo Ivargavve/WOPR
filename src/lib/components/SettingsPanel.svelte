@@ -24,7 +24,7 @@
 
   // Local state for form fields
   let personaName = $state('Joshua');
-  let userName = $state('Player');
+  let userName = $state('Falken');
   /** @type {'openai' | 'anthropic' | 'gemini'} */
   let aiProvider = $state(/** @type {'openai' | 'anthropic' | 'gemini'} */ ('openai'));
   let apiKey = $state('');
@@ -61,7 +61,7 @@
       config = await loadConfig();
       if (config) {
         personaName = config.persona_name;
-        userName = config.user_name || 'Player';
+        userName = config.user_name || 'Falken';
         aiProvider = /** @type {'openai' | 'anthropic' | 'gemini'} */ (config.ai_provider || 'openai');
         apiKey = config.api_key || '';
         aiModel = config.ai_model || 'gpt-4o-mini';
@@ -208,7 +208,11 @@
 </script>
 
 {#if show}
+  <!-- svelte-ignore a11y_interactive_supports_focus -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div class="settings-overlay" onclick={onclose} role="dialog" aria-modal="true">
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div class="settings-panel" onclick={(e) => e.stopPropagation()} role="document">
       <div class="settings-header">
         <span class="header-title">[*] CONFIGURATION</span>
@@ -465,44 +469,6 @@
     color: var(--accent-error);
   }
 
-  .interval-label {
-    display: block;
-    color: var(--text-dim);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.5rem;
-  }
-
-  .retro-slider {
-    width: 100%;
-    height: 8px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    outline: none;
-  }
-
-  .retro-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    background: var(--text-primary);
-    cursor: pointer;
-    box-shadow: 0 0 8px var(--text-primary);
-  }
-
-  .retro-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    background: var(--text-primary);
-    cursor: pointer;
-    border: none;
-    box-shadow: 0 0 8px var(--text-primary);
-  }
-
   .display-info {
     margin-bottom: 0.75rem;
     font-size: 0.75rem;
@@ -572,46 +538,6 @@
     color: var(--accent-error);
   }
 
-  .permission-toggle-group {
-    margin-bottom: 0.75rem;
-  }
-
-  .permission-toggle-group:last-child {
-    margin-bottom: 0;
-  }
-
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .permission-status {
-    font-size: 0.7rem;
-    color: var(--accent-warning);
-  }
-
-  .permission-status.error {
-    color: var(--accent-error);
-  }
-
-  .permission-help {
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-  }
-
-  .permission-help p {
-    font-size: 0.7rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .permission-buttons {
-    display: flex;
-    gap: 0.5rem;
-  }
-
   .settings-footer {
     display: flex;
     gap: 0.5rem;
@@ -621,10 +547,5 @@
 
   .settings-footer :global(button) {
     flex: 1;
-  }
-
-  .mic-hint {
-    font-size: 0.65rem;
-    margin-top: 0.5rem;
   }
 </style>

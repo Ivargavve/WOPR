@@ -36,7 +36,7 @@
 <style>
   .retro-panel {
     background: var(--bg-panel);
-    padding: 1rem;
+    padding: 0.4rem;
     position: relative;
   }
 
@@ -59,9 +59,9 @@
   .panel-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-    font-size: 0.85rem;
+    gap: 0.3rem;
+    margin-bottom: 0.3rem;
+    font-size: 0.65rem;
   }
 
   .header-decoration {
