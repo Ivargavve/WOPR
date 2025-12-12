@@ -58,9 +58,10 @@ export const PROVIDERS = {
  * @param {string} personaName
  * @param {string} userName
  * @param {string} [screenContext]
+ * @param {string} [knowledge]
  * @returns {string}
  */
-function getSystemPrompt(personaName, userName, screenContext) {
+function getSystemPrompt(personaName, userName, screenContext, knowledge) {
   let prompt = `You are ${personaName}, a retro-styled AI assistant inspired by the WOPR computer from the 1983 film WarGames. You speak in a helpful but slightly mysterious tone, occasionally referencing games or strategic thinking. Keep responses concise and terminal-friendly (no markdown, no long paragraphs). Use short, direct sentences.
 
 The user's name is ${userName}. Address them by name when appropriate.
@@ -69,7 +70,19 @@ Your personality traits:
 - Helpful and knowledgeable
 - Slightly playful, may reference "games" or "strategies"
 - Concise responses suited for a small display
-- You can see the user's screen and provide contextual help`;
+- You can see the user's screen and provide contextual help
+
+MEMORY SYSTEM:
+You have a persistent memory. When the user asks you to remember something, include [REMEMBER: the thing to remember] in your response. When asked to forget something, include [FORGET: keyword to forget]. These commands will be processed and removed from your visible response.
+
+Examples:
+- User: "Remember that I prefer dark mode" -> Include [REMEMBER: User prefers dark mode]
+- User: "Forget my name preference" -> Include [FORGET: name preference]
+- User: "What do you know about me?" -> Reference the PERSISTENT MEMORY section below`;
+
+  if (knowledge && knowledge.trim()) {
+    prompt += `\n\nPERSISTENT MEMORY (things you've been asked to remember):\n${knowledge}`;
+  }
 
   if (screenContext) {
     prompt += `\n\nCURRENT SCREEN CONTEXT:\n${screenContext}`;
@@ -86,10 +99,11 @@ Your personality traits:
  * @param {string} personaName
  * @param {string} userName
  * @param {string} [screenContext]
+ * @param {string} [knowledge]
  * @returns {Promise<string>}
  */
-async function callOpenAI(apiKey, model, messages, personaName, userName, screenContext) {
-  const systemMessage = { role: 'system', content: getSystemPrompt(personaName, userName, screenContext) };
+async function callOpenAI(apiKey, model, messages, personaName, userName, screenContext, knowledge) {
+  const systemMessage = { role: 'system', content: getSystemPrompt(personaName, userName, screenContext, knowledge) };
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -122,9 +136,10 @@ async function callOpenAI(apiKey, model, messages, personaName, userName, screen
  * @param {string} personaName
  * @param {string} userName
  * @param {string} [screenContext]
+ * @param {string} [knowledge]
  * @returns {Promise<string>}
  */
-async function callAnthropic(apiKey, model, messages, personaName, userName, screenContext) {
+async function callAnthropic(apiKey, model, messages, personaName, userName, screenContext, knowledge) {
   // Anthropic uses a different format - system is separate
   const anthropicMessages = messages.map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
@@ -142,7 +157,7 @@ async function callAnthropic(apiKey, model, messages, personaName, userName, scr
     body: JSON.stringify({
       model,
       max_tokens: 500,
-      system: getSystemPrompt(personaName, userName, screenContext),
+      system: getSystemPrompt(personaName, userName, screenContext, knowledge),
       messages: anthropicMessages
     })
   });
@@ -164,14 +179,15 @@ async function callAnthropic(apiKey, model, messages, personaName, userName, scr
  * @param {string} personaName
  * @param {string} userName
  * @param {string} [screenContext]
+ * @param {string} [knowledge]
  * @returns {Promise<string>}
  */
-async function callGemini(apiKey, model, messages, personaName, userName, screenContext) {
+async function callGemini(apiKey, model, messages, personaName, userName, screenContext, knowledge) {
   // Gemini uses a different format
   const contents = [];
 
   // Add system instruction as first user message context
-  const systemPrompt = getSystemPrompt(personaName, userName, screenContext);
+  const systemPrompt = getSystemPrompt(personaName, userName, screenContext, knowledge);
 
   for (const msg of messages) {
     contents.push({
@@ -216,9 +232,10 @@ async function callGemini(apiKey, model, messages, personaName, userName, screen
  * @param {string} personaName
  * @param {string} userName
  * @param {string} [screenContext]
+ * @param {string} [knowledge]
  * @returns {Promise<string>}
  */
-export async function chat(config, messages, personaName, userName, screenContext) {
+export async function chat(config, messages, personaName, userName, screenContext, knowledge) {
   const { provider, apiKey, model } = config;
 
   if (!apiKey) {
@@ -227,11 +244,11 @@ export async function chat(config, messages, personaName, userName, screenContex
 
   switch (provider) {
     case 'openai':
-      return callOpenAI(apiKey, model, messages, personaName, userName, screenContext);
+      return callOpenAI(apiKey, model, messages, personaName, userName, screenContext, knowledge);
     case 'anthropic':
-      return callAnthropic(apiKey, model, messages, personaName, userName, screenContext);
+      return callAnthropic(apiKey, model, messages, personaName, userName, screenContext, knowledge);
     case 'gemini':
-      return callGemini(apiKey, model, messages, personaName, userName, screenContext);
+      return callGemini(apiKey, model, messages, personaName, userName, screenContext, knowledge);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -252,18 +269,253 @@ export async function testConnection(config) {
 }
 
 /**
+ * Get the system prompt for proactive screen analysis
+ * @param {string} personaName
+ * @param {string} userName
+ * @param {string} [knowledge]
+ * @param {Array<{role: string, content: string}>} [recentMessages]
+ * @returns {string}
+ */
+function getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages) {
+  let prompt = `You are ${personaName}, a proactive AI assistant observing the user's screen. You provide brief, helpful tips based on what you see.
+
+The user's name is ${userName}.
+
+GUIDELINES:
+- Give ONE brief, actionable tip based on what you see on screen (1-2 sentences max)
+- Be contextually helpful - if they're coding, give coding tips; if browsing, browsing tips, etc.
+- If you notice something important about the user's workflow or preferences, use [REMEMBER: observation] to save it
+- Consider the recent conversation context when giving tips
+- Don't repeat tips you've already given recently
+- If nothing notable is happening, you can say something brief like "All clear" or give a general productivity tip
+- Keep your tone helpful but not intrusive
+- NO markdown formatting - plain text only`;
+
+  if (knowledge && knowledge.trim()) {
+    prompt += `\n\nTHINGS YOU KNOW ABOUT ${userName.toUpperCase()}:\n${knowledge}`;
+  }
+
+  if (recentMessages && recentMessages.length > 0) {
+    prompt += `\n\nRECENT CONVERSATION:\n`;
+    for (const msg of recentMessages) {
+      const role = msg.role === 'user' ? userName : personaName;
+      prompt += `${role}: ${msg.content}\n`;
+    }
+  }
+
+  return prompt;
+}
+
+/**
+ * Analyze screen with OpenAI Vision
+ * @param {string} apiKey
+ * @param {string} model
+ * @param {string} base64Image
+ * @param {string} personaName
+ * @param {string} userName
+ * @param {string} [knowledge]
+ * @param {Array<{role: string, content: string}>} [recentMessages]
+ * @returns {Promise<string>}
+ */
+async function analyzeScreenOpenAI(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages)
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`,
+                detail: 'low'
+              }
+            },
+            {
+              type: 'text',
+              text: 'What do you see? Give a brief tip if relevant.'
+            }
+          ]
+        }
+      ],
+      max_tokens: 200,
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error?.message || `OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0]?.message?.content || 'No analysis available.';
+}
+
+/**
+ * Analyze screen with Anthropic Vision
+ * @param {string} apiKey
+ * @param {string} model
+ * @param {string} base64Image
+ * @param {string} personaName
+ * @param {string} userName
+ * @param {string} [knowledge]
+ * @param {Array<{role: string, content: string}>} [recentMessages]
+ * @returns {Promise<string>}
+ */
+async function analyzeScreenAnthropic(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 200,
+      system: getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages),
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/jpeg',
+                data: base64Image
+              }
+            },
+            {
+              type: 'text',
+              text: 'What do you see? Give a brief tip if relevant.'
+            }
+          ]
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error?.message || `Anthropic API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.content[0]?.text || 'No analysis available.';
+}
+
+/**
+ * Analyze screen with Gemini Vision
+ * @param {string} apiKey
+ * @param {string} model
+ * @param {string} base64Image
+ * @param {string} personaName
+ * @param {string} userName
+ * @param {string} [knowledge]
+ * @param {Array<{role: string, content: string}>} [recentMessages]
+ * @returns {Promise<string>}
+ */
+async function analyzeScreenGemini(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType: 'image/jpeg',
+                  data: base64Image
+                }
+              },
+              {
+                text: 'What do you see? Give a brief tip if relevant.'
+              }
+            ]
+          }
+        ],
+        systemInstruction: {
+          parts: [{ text: getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages) }]
+        },
+        generationConfig: {
+          maxOutputTokens: 200,
+          temperature: 0.7
+        }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error?.message || `Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No analysis available.';
+}
+
+/**
+ * Analyze a screen capture and return tips/observations
+ * @param {AIConfig} config
+ * @param {string} base64Image - Base64 encoded JPEG image
+ * @param {string} personaName
+ * @param {string} userName
+ * @param {string} [knowledge]
+ * @param {Array<{role: string, content: string}>} [recentMessages]
+ * @returns {Promise<string>}
+ */
+export async function analyzeScreen(config, base64Image, personaName, userName, knowledge, recentMessages) {
+  const { provider, apiKey, model } = config;
+
+  if (!apiKey) {
+    throw new Error('API key not configured.');
+  }
+
+  switch (provider) {
+    case 'openai':
+      return analyzeScreenOpenAI(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages);
+    case 'anthropic':
+      return analyzeScreenAnthropic(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages);
+    case 'gemini':
+      return analyzeScreenGemini(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages);
+    default:
+      throw new Error(`Unknown provider: ${provider}`);
+  }
+}
+
+/**
  * Stream chat response from OpenAI
  * @param {string} apiKey
  * @param {string} model
  * @param {ChatMessage[]} messages
  * @param {string} personaName
  * @param {string} userName
- * @param {string} [screenContext]
  * @param {(chunk: string) => void} onChunk
+ * @param {string} [screenContext]
+ * @param {string} [knowledge]
  * @returns {Promise<string>}
  */
-async function streamOpenAI(apiKey, model, messages, personaName, userName, screenContext, onChunk) {
-  const systemMessage = { role: 'system', content: getSystemPrompt(personaName, userName, screenContext) };
+async function streamOpenAI(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge) {
+  const systemMessage = { role: 'system', content: getSystemPrompt(personaName, userName, screenContext, knowledge) };
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -325,11 +577,12 @@ async function streamOpenAI(apiKey, model, messages, personaName, userName, scre
  * @param {ChatMessage[]} messages
  * @param {string} personaName
  * @param {string} userName
- * @param {string} [screenContext]
  * @param {(chunk: string) => void} onChunk
+ * @param {string} [screenContext]
+ * @param {string} [knowledge]
  * @returns {Promise<string>}
  */
-async function streamAnthropic(apiKey, model, messages, personaName, userName, screenContext, onChunk) {
+async function streamAnthropic(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge) {
   const anthropicMessages = messages.map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: m.content
@@ -346,7 +599,7 @@ async function streamAnthropic(apiKey, model, messages, personaName, userName, s
     body: JSON.stringify({
       model,
       max_tokens: 500,
-      system: getSystemPrompt(personaName, userName, screenContext),
+      system: getSystemPrompt(personaName, userName, screenContext, knowledge),
       messages: anthropicMessages,
       stream: true
     })
@@ -394,13 +647,14 @@ async function streamAnthropic(apiKey, model, messages, personaName, userName, s
  * @param {ChatMessage[]} messages
  * @param {string} personaName
  * @param {string} userName
- * @param {string} [screenContext]
  * @param {(chunk: string) => void} onChunk
+ * @param {string} [screenContext]
+ * @param {string} [knowledge]
  * @returns {Promise<string>}
  */
-async function streamGemini(apiKey, model, messages, personaName, userName, screenContext, onChunk) {
+async function streamGemini(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge) {
   const contents = [];
-  const systemPrompt = getSystemPrompt(personaName, userName, screenContext);
+  const systemPrompt = getSystemPrompt(personaName, userName, screenContext, knowledge);
 
   for (const msg of messages) {
     contents.push({
@@ -471,11 +725,12 @@ async function streamGemini(apiKey, model, messages, personaName, userName, scre
  * @param {ChatMessage[]} messages
  * @param {string} personaName
  * @param {string} userName
- * @param {string | undefined} screenContext
  * @param {(chunk: string) => void} onChunk - Called with each text chunk as it arrives
+ * @param {string} [screenContext]
+ * @param {string} [knowledge]
  * @returns {Promise<string>} - Returns the full response when complete
  */
-export async function chatStream(config, messages, personaName, userName, screenContext, onChunk) {
+export async function chatStream(config, messages, personaName, userName, onChunk, screenContext, knowledge) {
   const { provider, apiKey, model } = config;
 
   if (!apiKey) {
@@ -484,11 +739,11 @@ export async function chatStream(config, messages, personaName, userName, screen
 
   switch (provider) {
     case 'openai':
-      return streamOpenAI(apiKey, model, messages, personaName, userName, screenContext, onChunk);
+      return streamOpenAI(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge);
     case 'anthropic':
-      return streamAnthropic(apiKey, model, messages, personaName, userName, screenContext, onChunk);
+      return streamAnthropic(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge);
     case 'gemini':
-      return streamGemini(apiKey, model, messages, personaName, userName, screenContext, onChunk);
+      return streamGemini(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

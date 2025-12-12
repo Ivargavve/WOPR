@@ -37,6 +37,12 @@ pub struct AppConfig {
     /// Custom data folder path (None = default Desktop/WOPR)
     #[serde(default)]
     pub data_folder_path: Option<String>,
+    /// Selected monitor index for screen capture (None = primary/default)
+    #[serde(default)]
+    pub selected_monitor: Option<usize>,
+    /// Selected microphone device ID (None = system default)
+    #[serde(default)]
+    pub selected_microphone: Option<String>,
 }
 
 fn default_user_name() -> String {
@@ -71,7 +77,7 @@ impl Default for AppConfig {
             ai_provider: "openai".to_string(),
             api_key: None,
             ai_model: "gpt-4o-mini".to_string(),
-            capture_interval_ms: 30000,
+            capture_interval_ms: 60000,
             vision_enabled: false,  // Default OFF - requires permission
             voice_enabled: false,   // Default OFF - requires permission
             wake_word: "Joshua".to_string(),
@@ -80,6 +86,8 @@ impl Default for AppConfig {
             always_on_top: false,
             theme: ThemeConfig::default(),
             data_folder_path: None,
+            selected_monitor: None,      // Use primary/default monitor
+            selected_microphone: None,   // Use system default microphone
         }
     }
 }

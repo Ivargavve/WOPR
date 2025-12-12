@@ -3,6 +3,7 @@
   import { RetroPanel, RetroButton, RetroToggle, RetroInput, RetroSelect } from '$lib/components';
   import { getAvailableDisplays, setBorderlessFullscreen, setAlwaysOnTop } from '$lib/services/window.js';
   import { loadConfig, saveConfig, getDataPaths, changeDataFolder } from '$lib/services/storage.js';
+  import { getAvailableScreens } from '$lib/services/capture.js';
   import { PROVIDERS, testConnection } from '$lib/services/ai.js';
   import * as permissions from '$lib/services/permissions.js';
   import { open } from '@tauri-apps/plugin-dialog';
@@ -21,6 +22,10 @@
   let voicePermissionStatus = $state('');
   /** @type {import('$lib/services/window.js').DisplayInfo[]} */
   let displays = $state([]);
+  /** @type {import('$lib/services/capture.js').ScreenCaptureInfo[]} */
+  let captureScreens = $state([]);
+  /** @type {{deviceId: string, label: string}[]} */
+  let microphones = $state([]);
 
   // Local state for form fields
   let personaName = $state('Joshua');
@@ -37,6 +42,10 @@
   let alwaysOnTop = $state(false);
   let dataFolderPath = $state('');
   let defaultFolderPath = $state('');
+  /** @type {string} */
+  let selectedMonitor = $state('default');
+  /** @type {string} */
+  let selectedMicrophone = $state('default');
 
   // Get available models for selected provider
   const availableModels = $derived(
@@ -72,6 +81,9 @@
         wakeWord = config.wake_word;
         scanlines = config.theme?.scanlines ?? true;
         alwaysOnTop = config.always_on_top;
+        selectedMonitor = config.selected_monitor !== null && config.selected_monitor !== undefined
+          ? String(config.selected_monitor) : 'default';
+        selectedMicrophone = config.selected_microphone || 'default';
       }
 
       // Get data paths
@@ -80,6 +92,26 @@
       defaultFolderPath = paths.default_folder;
 
       displays = await getAvailableDisplays();
+
+      // Get available screens for capture
+      try {
+        captureScreens = await getAvailableScreens();
+      } catch (e) {
+        console.error('Failed to get screens:', e);
+      }
+
+      // Get available microphones
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        microphones = devices
+          .filter(d => d.kind === 'audioinput')
+          .map((d, i) => ({
+            deviceId: d.deviceId,
+            label: d.label || `Microphone ${i + 1}`
+          }));
+      } catch (e) {
+        console.error('Failed to enumerate audio devices:', e);
+      }
     } catch (e) {
       console.error('Failed to load settings:', e);
     } finally {
@@ -105,7 +137,9 @@
       theme: {
         ...config.theme,
         scanlines
-      }
+      },
+      selected_monitor: selectedMonitor === 'default' ? null : parseInt(selectedMonitor, 10),
+      selected_microphone: selectedMicrophone === 'default' ? null : selectedMicrophone
     };
 
     try {
@@ -396,6 +430,21 @@
                   class="retro-slider"
                 />
               </div>
+              {#if captureScreens.length > 1}
+                <div class="setting-group">
+                  <RetroSelect
+                    label="Capture Monitor"
+                    options={[
+                      { value: 'default', label: 'Primary Display' },
+                      ...captureScreens.map(s => ({
+                        value: String(s.index),
+                        label: `${s.name} (${s.width}x${s.height})${s.is_primary ? ' *' : ''}`
+                      }))
+                    ]}
+                    bind:value={selectedMonitor}
+                  />
+                </div>
+              {/if}
             {/if}
             <div class="permission-toggle-group">
               <div class="toggle-row">
@@ -411,6 +460,22 @@
                 {/if}
               </div>
             </div>
+            {#if voiceEnabled && microphones.length > 0}
+              <div class="setting-group">
+                <RetroSelect
+                  label="Microphone"
+                  options={[
+                    { value: 'default', label: 'System Default' },
+                    ...microphones.map(m => ({
+                      value: m.deviceId,
+                      label: m.label
+                    }))
+                  ]}
+                  bind:value={selectedMicrophone}
+                />
+                <p class="dim mic-hint">Note: Browser uses system default. Change in OS settings.</p>
+              </div>
+            {/if}
           </RetroPanel>
 
           <RetroPanel title="DATA STORAGE">
@@ -734,5 +799,10 @@
 
   .settings-footer :global(button) {
     flex: 1;
+  }
+
+  .mic-hint {
+    font-size: 0.65rem;
+    margin-top: 0.5rem;
   }
 </style>

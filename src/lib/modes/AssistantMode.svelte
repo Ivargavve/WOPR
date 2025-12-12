@@ -2,9 +2,11 @@
   import { onMount, onDestroy } from 'svelte';
   import { RetroPanel, RetroButton, RetroInput } from '$lib/components';
   import { loadConfig } from '$lib/services/storage.js';
-  import { chatStream } from '$lib/services/ai.js';
+  import { chatStream, analyzeScreen } from '$lib/services/ai.js';
   import { captureScreen } from '$lib/services/capture.js';
+  import { loadKnowledge, parseAndExecuteKnowledgeCommands } from '$lib/services/knowledge.js';
   import * as voice from '$lib/services/voice.js';
+  import { checkMicrophonePermission, requestMicrophonePermission } from 'tauri-plugin-macos-permissions-api';
 
   /**
    * @typedef {Object} Message
@@ -23,12 +25,21 @@
 
   let inputText = $state('');
   let isLoading = $state(false);
+  let isAnalyzing = $state(false);
   let isListening = $state(false);
-  let screenContext = $state('');
+  let wakeWordHeard = $state(false);
   let lastCaptureTime = $state(0);
+  let nextScanCountdown = $state(0);
   let personaName = $state('Joshua');
   let userName = $state('Player');
+  let wakeWord = $state('Joshua');
   let captureIntervalMs = $state(30000);
+  /** @type {number | null} */
+  let selectedMonitor = $state(null);
+  let knowledge = $state('');
+
+  /** @type {ReturnType<typeof setInterval> | null} */
+  let countdownInterval = null;
 
   /** @type {import('$lib/services/storage.js').AppConfig | null} */
   let config = $state(null);
@@ -51,6 +62,142 @@
     }
   });
 
+  // React to visionOn changes
+  $effect(() => {
+    if (visionOn) {
+      // Start vision if not already running
+      if (!captureInterval) {
+        nextScanCountdown = Math.round(captureIntervalMs / 1000);
+        captureAndAnalyze();
+        captureInterval = setInterval(captureAndAnalyze, captureIntervalMs);
+
+        // Start countdown timer
+        if (countdownInterval) clearInterval(countdownInterval);
+        countdownInterval = setInterval(() => {
+          nextScanCountdown = Math.max(0, nextScanCountdown - 1);
+          if (nextScanCountdown === 0) {
+            nextScanCountdown = Math.round(captureIntervalMs / 1000);
+          }
+        }, 1000);
+      }
+    } else {
+      // Stop vision
+      if (captureInterval) {
+        clearInterval(captureInterval);
+        captureInterval = null;
+      }
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+      nextScanCountdown = 0;
+    }
+  });
+
+  /**
+   * Request microphone permission and start voice recognition
+   */
+  async function startVoiceWithPermission() {
+    try {
+      // Check current permission status
+      console.log('Checking microphone permission...');
+      const hasPermission = await checkMicrophonePermission();
+      console.log('Microphone permission status:', hasPermission);
+
+      if (!hasPermission) {
+        // Request permission
+        console.log('Requesting microphone permission...');
+        messages = [...messages, {
+          role: 'system',
+          content: 'Requesting microphone permission...',
+          timestamp: Date.now()
+        }];
+
+        const granted = await requestMicrophonePermission();
+        console.log('Permission granted:', granted);
+
+        if (!granted) {
+          messages = [...messages, {
+            role: 'system',
+            content: 'Microphone permission denied. Please enable in System Settings > Privacy & Security > Microphone.',
+            timestamp: Date.now()
+          }];
+          return;
+        }
+      }
+
+      // Permission granted, start voice recognition
+      if (!voice.isSupported()) {
+        console.warn('Speech recognition not supported in this browser/webview');
+        messages = [...messages, {
+          role: 'system',
+          content: 'Voice not supported. Try opening http://localhost:1420 in Safari/Chrome instead.',
+          timestamp: Date.now()
+        }];
+        return;
+      }
+
+      if (!voice.getIsAlwaysListening()) {
+        console.log('Starting voice recognition...');
+        voice.init({ wakeWord, alwaysListen: true });
+        voice.onCommand(handleVoiceCommand);
+        voice.onWakeWord((detected) => {
+          wakeWordHeard = detected;
+          if (detected) {
+            setTimeout(() => { wakeWordHeard = false; }, 1500);
+          }
+        });
+        voice.onStart(() => {
+          console.log('Voice recognition started');
+          isListening = true;
+        });
+        voice.onEnd(() => {
+          console.log('Voice recognition ended');
+          isListening = false;
+        });
+        voice.onError((error) => {
+          console.error('Voice error:', error);
+          if (error === 'not-allowed') {
+            messages = [...messages, {
+              role: 'system',
+              content: 'Mic access denied. Please grant permission in System Settings.',
+              timestamp: Date.now()
+            }];
+          } else if (error !== 'no-speech' && error !== 'aborted') {
+            messages = [...messages, {
+              role: 'system',
+              content: `Voice error: ${error}`,
+              timestamp: Date.now()
+            }];
+          }
+        });
+        voice.startAlwaysListening(wakeWord);
+      }
+    } catch (e) {
+      console.error('Permission check failed:', e);
+      // Fallback: try starting voice anyway (might work in browser)
+      if (voice.isSupported() && !voice.getIsAlwaysListening()) {
+        voice.init({ wakeWord, alwaysListen: true });
+        voice.onCommand(handleVoiceCommand);
+        voice.onStart(() => isListening = true);
+        voice.onEnd(() => isListening = false);
+        voice.startAlwaysListening(wakeWord);
+      }
+    }
+  }
+
+  // React to voiceOn changes
+  $effect(() => {
+    if (voiceOn) {
+      startVoiceWithPermission();
+    } else {
+      if (voice.getIsAlwaysListening()) {
+        voice.stopAlwaysListening();
+        isListening = false;
+      }
+    }
+  });
+
   onMount(async () => {
     // Load config
     try {
@@ -58,70 +205,143 @@
       if (config) {
         personaName = config.persona_name || 'Joshua';
         userName = config.user_name || 'Player';
+        wakeWord = config.wake_word || 'Joshua';
         captureIntervalMs = config.capture_interval_ms || 30000;
+        selectedMonitor = config.selected_monitor ?? null;
       }
     } catch (e) {
       console.error('Failed to load config:', e);
     }
 
-    // Initialize voice
-    if (voiceOn && voice.isSupported()) {
-      voice.init({ continuous: false });
-      voice.onResult(handleVoiceResult);
-      voice.onStart(() => isListening = true);
-      voice.onEnd(() => isListening = false);
-      voice.onError((err) => {
-        console.error('Voice error:', err);
-        isListening = false;
-      });
-    }
-
-    // Start screen capture interval
-    if (visionOn) {
-      await captureScreenContext();
-      captureInterval = setInterval(captureScreenContext, captureIntervalMs);
+    // Load knowledge
+    try {
+      knowledge = await loadKnowledge();
+    } catch (e) {
+      console.error('Failed to load knowledge:', e);
     }
 
     // Update initial message
     messages = [
-      { role: 'system', content: `${personaName} online. Say my name or type to ask anything.`, timestamp: Date.now() }
+      { role: 'system', content: `${personaName} online. Toggle vision/voice with buttons below.`, timestamp: Date.now() }
     ];
+
+    // Note: Vision and voice are started by $effect() reactively based on props
   });
 
   onDestroy(() => {
     if (captureInterval) {
       clearInterval(captureInterval);
     }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+    }
     voice.destroy();
   });
 
-  async function captureScreenContext() {
-    if (!visionOn) return;
+  /**
+   * Capture screen and proactively analyze it
+   * @param {boolean} [manual=false] - Whether this was manually triggered
+   */
+  async function captureAndAnalyze(manual = false) {
+    if (!visionOn && !manual) return;
+    if (isAnalyzing) return; // Don't overlap analyses
+
+    // Need config to analyze
+    if (!config || !config.api_key) {
+      if (manual) {
+        messages = [...messages, {
+          role: 'system',
+          content: 'ERROR: No API key configured.',
+          timestamp: Date.now()
+        }];
+      }
+      return;
+    }
+
+    isAnalyzing = true;
 
     try {
-      const base64Image = await captureScreen();
-      screenContext = `[Screen captured at ${new Date().toLocaleTimeString()}. Image data available for analysis.]`;
+      // Capture the screen
+      const base64Image = await captureScreen(selectedMonitor);
       lastCaptureTime = Date.now();
+
+      // Reload knowledge before analysis
+      knowledge = await loadKnowledge();
+
+      // Get recent messages for context (last 5, excluding system messages)
+      const recentMessages = messages
+        .filter(m => m.role !== 'system')
+        .slice(-5)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      // Analyze the screen with AI
+      const analysis = await analyzeScreen(
+        {
+          provider: /** @type {import('$lib/services/ai.js').AIProvider} */ (config.ai_provider),
+          apiKey: config.api_key,
+          model: config.ai_model
+        },
+        base64Image,
+        personaName,
+        userName,
+        knowledge || undefined,
+        recentMessages.length > 0 ? recentMessages : undefined
+      );
+
+      // Process any knowledge commands in the response
+      const { cleanedResponse, actions } = await parseAndExecuteKnowledgeCommands(analysis);
+
+      // Add the tip as an assistant message
+      if (cleanedResponse && cleanedResponse.trim()) {
+        messages = [...messages, {
+          role: 'assistant',
+          content: cleanedResponse,
+          timestamp: Date.now()
+        }];
+      }
+
+      // Reload knowledge if updated
+      if (actions.length > 0) {
+        knowledge = await loadKnowledge();
+      }
     } catch (e) {
-      console.error('Failed to capture screen:', e);
-      screenContext = '[Screen capture unavailable]';
+      console.error('Screen analysis failed:', e);
+      if (manual) {
+        messages = [...messages, {
+          role: 'system',
+          content: `Scan error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+          timestamp: Date.now()
+        }];
+      }
+    } finally {
+      isAnalyzing = false;
     }
   }
 
   /**
-   * @param {string} text
+   * Manual trigger for screen scan
    */
-  function handleVoiceResult(text) {
-    inputText = text;
-    handleSend();
+  function handleManualScan() {
+    captureAndAnalyze(true);
   }
 
-  function toggleVoice() {
-    if (isListening) {
-      voice.stopListening();
-    } else {
-      voice.startListening();
+  /**
+   * Handle voice command (wake word + command detected)
+   * @param {string} command
+   */
+  function handleVoiceCommand(command) {
+    // Check for special commands
+    const lowerCommand = command.toLowerCase();
+
+    if (lowerCommand.includes('scan') || lowerCommand.includes('look') || lowerCommand.includes('what do you see')) {
+      // Trigger manual screen scan
+      handleManualScan();
+      return;
     }
+
+    // Otherwise, treat as a chat message
+    inputText = command;
+    handleSend();
   }
 
   async function handleSend() {
@@ -130,15 +350,17 @@
     const userMessage = inputText.trim();
     inputText = '';  // Clear input immediately
 
-    // Reload config to get latest settings
+    // Reload config and knowledge to get latest settings
     try {
       config = await loadConfig();
       if (config) {
         personaName = config.persona_name || 'Joshua';
         userName = config.user_name || 'Player';
+        selectedMonitor = config.selected_monitor ?? null;
       }
+      knowledge = await loadKnowledge();
     } catch (e) {
-      console.error('Failed to reload config:', e);
+      console.error('Failed to reload config/knowledge:', e);
     }
 
     if (!config || !config.api_key) {
@@ -176,7 +398,7 @@
         .map(m => ({ role: m.role, content: m.content }));
 
       // Get AI response with streaming
-      await chatStream(
+      const fullResponse = await chatStream(
         {
           provider: /** @type {import('$lib/services/ai.js').AIProvider} */ (config.ai_provider),
           apiKey: config.api_key,
@@ -185,7 +407,6 @@
         chatHistory,
         personaName,
         userName,
-        visionOn ? screenContext : undefined,
         (chunk) => {
           // Update the assistant message content as chunks arrive
           messages = messages.map((m, i) =>
@@ -193,8 +414,24 @@
               ? { ...m, content: m.content + chunk }
               : m
           );
-        }
+        },
+        undefined, // screenContext not needed for chat anymore
+        knowledge || undefined
       );
+
+      // Process knowledge commands from the response
+      const { cleanedResponse, actions } = await parseAndExecuteKnowledgeCommands(fullResponse);
+
+      // Update the message with cleaned response (commands removed)
+      if (cleanedResponse !== fullResponse) {
+        messages = messages.map((m, i) =>
+          i === assistantMessageIndex
+            ? { ...m, content: cleanedResponse }
+            : m
+        );
+        // Reload knowledge after updates
+        knowledge = await loadKnowledge();
+      }
     } catch (e) {
       console.error('AI error:', e);
       const errorMessage = e instanceof Error ? e.message : 'Failed to get response';
@@ -223,6 +460,35 @@
 <div class="assistant-mode">
   <div class="chat-panel-wrapper">
     <RetroPanel title={personaName.toUpperCase()}>
+      <!-- Compact status bar -->
+      <div class="status-bar">
+        <span class="status-item" class:active={visionOn} class:scanning={isAnalyzing}>
+          {#if isAnalyzing}
+            EYE:SCAN
+          {:else if visionOn}
+            EYE:{nextScanCountdown}s
+          {:else}
+            EYE:OFF
+          {/if}
+        </span>
+        <span class="status-divider">|</span>
+        <span class="status-item" class:active={isListening} class:wake-word-heard={wakeWordHeard} class:waiting={voiceOn && !isListening}>
+          {#if wakeWordHeard}
+            MIC:HEARD!
+          {:else if isListening}
+            MIC:ON
+          {:else if voiceOn}
+            MIC:...
+          {:else}
+            MIC:OFF
+          {/if}
+        </span>
+        {#if lastCaptureTime}
+          <span class="status-divider">|</span>
+          <span class="status-item dim">@{new Date(lastCaptureTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+        {/if}
+      </div>
+
       <div class="message-area" bind:this={messagesContainer}>
         {#each messages as message}
           <div class="message" class:user={message.role === 'user'} class:assistant={message.role === 'assistant'} class:system={message.role === 'system'}>
@@ -244,6 +510,12 @@
 
   <div class="input-area">
     <div class="input-row">
+      <RetroButton
+        icon="@"
+        onclick={handleManualScan}
+        disabled={isAnalyzing || !config?.api_key}
+        title="Scan screen now"
+      />
       <input
         type="text"
         class="chat-input"
@@ -253,12 +525,6 @@
         disabled={isLoading}
       />
       <RetroButton
-        icon={isListening ? '||' : '()'}
-        onclick={toggleVoice}
-        active={isListening}
-        disabled={!voiceOn || !voice.isSupported()}
-      />
-      <RetroButton
         icon=">>"
         onclick={handleSend}
         disabled={isLoading || !inputText.trim()}
@@ -266,25 +532,6 @@
       />
     </div>
   </div>
-
-  <RetroPanel title="CONTEXT" border="single">
-    <div class="context-info">
-      <div class="context-row">
-        <span class="context-label">VISION:</span>
-        <span class="context-value">{visionOn ? 'ACTIVE' : 'OFF'}</span>
-      </div>
-      {#if visionOn && lastCaptureTime}
-        <div class="context-row">
-          <span class="context-label">LAST SCAN:</span>
-          <span class="context-value">{new Date(lastCaptureTime).toLocaleTimeString()}</span>
-        </div>
-      {/if}
-      <div class="context-row">
-        <span class="context-label">VOICE:</span>
-        <span class="context-value">{isListening ? 'LISTENING' : voiceOn ? 'READY' : 'OFF'}</span>
-      </div>
-    </div>
-  </RetroPanel>
 </div>
 
 <style>
@@ -360,10 +607,6 @@
     color: var(--text-dim);
   }
 
-  .thinking .dots {
-    animation: blink 1s step-end infinite;
-  }
-
   @keyframes blink {
     50% { opacity: 0; }
   }
@@ -402,24 +645,48 @@
     opacity: 0.6;
   }
 
-  .context-info {
+  .status-bar {
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .context-row {
-    display: flex;
+    align-items: center;
     gap: 0.5rem;
-    font-size: 0.7rem;
+    padding: 0.25rem 0;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
   }
 
-  .context-label {
+  .status-item {
     color: var(--text-dim);
-    min-width: 70px;
   }
 
-  .context-value {
+  .status-item.active {
     color: var(--text-primary);
+  }
+
+  .status-item.scanning,
+  .status-item.waiting {
+    color: var(--accent-warning);
+    animation: blink 0.5s step-end infinite;
+  }
+
+  .status-item.wake-word-heard {
+    color: var(--accent-cyan);
+    animation: pulse 0.5s ease-in-out;
+  }
+
+  .status-item.dim {
+    color: var(--text-dim);
+    opacity: 0.7;
+  }
+
+  .status-divider {
+    color: var(--border-color);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
 </style>

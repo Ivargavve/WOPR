@@ -3,15 +3,47 @@ use image::codecs::jpeg::JpegEncoder;
 use screenshots::Screen;
 use std::io::Cursor;
 
-/// Capture the primary screen and return as base64 JPEG
+/// Get list of available screens for capture
+#[tauri::command]
+pub fn get_available_screens() -> Result<Vec<ScreenCaptureInfo>, String> {
+    let screens = Screen::all().map_err(|e| format!("Failed to get screens: {}", e))?;
+
+    let screen_infos: Vec<ScreenCaptureInfo> = screens
+        .iter()
+        .enumerate()
+        .map(|(i, screen)| ScreenCaptureInfo {
+            index: i,
+            name: format!("Display {}", i + 1),
+            width: screen.display_info.width,
+            height: screen.display_info.height,
+            is_primary: screen.display_info.is_primary,
+        })
+        .collect();
+
+    Ok(screen_infos)
+}
+
+#[derive(serde::Serialize)]
+pub struct ScreenCaptureInfo {
+    pub index: usize,
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub is_primary: bool,
+}
+
+/// Capture a specific screen and return as base64 JPEG
 /// Quality is reduced to keep the data size manageable for AI APIs
 #[tauri::command]
-pub fn capture_screen() -> Result<String, String> {
+pub fn capture_screen(monitor_index: Option<usize>) -> Result<String, String> {
     // Get all screens
     let screens = Screen::all().map_err(|e| format!("Failed to get screens: {}", e))?;
 
-    // Use primary screen (first one)
-    let screen = screens.first().ok_or("No screens found")?;
+    // Use specified monitor or default to primary (index 0)
+    let index = monitor_index.unwrap_or(0);
+    let screen = screens.get(index).ok_or_else(|| {
+        format!("Monitor index {} not found. Available: {}", index, screens.len())
+    })?;
 
     // Capture the screen
     let image = screen

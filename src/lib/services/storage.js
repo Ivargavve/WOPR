@@ -10,6 +10,7 @@ import { invoke } from '@tauri-apps/api/core';
 /**
  * @typedef {Object} AppConfig
  * @property {string} persona_name - AI persona name
+ * @property {string} [user_name] - User's name for personalized responses
  * @property {string} ai_provider - AI provider (openai, anthropic, gemini)
  * @property {string|null} api_key - AI API key
  * @property {string} ai_model - AI model to use
@@ -22,6 +23,8 @@ import { invoke } from '@tauri-apps/api/core';
  * @property {boolean} always_on_top - Keep window on top
  * @property {ThemeConfig} theme - Theme settings
  * @property {string|null} [data_folder_path] - Custom data folder path
+ * @property {number|null} [selected_monitor] - Selected monitor index for capture
+ * @property {string|null} [selected_microphone] - Selected microphone device ID
  */
 
 /**

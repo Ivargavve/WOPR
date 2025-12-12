@@ -40,6 +40,7 @@ dirs = "5"
 
 # Dialog plugin for folder picker
 tauri-plugin-dialog = "2"
+tauri-plugin-macos-permissions = "2.3.0"
 
 # macOS permissions
 [target.'cfg(target_os = "macos")'.dependencies]
