@@ -64,11 +64,6 @@
 </script>
 
 <div class="monitor-mode">
-  <!-- Header -->
-  <div class="monitor-header">
-    <div class="header-title">═══ SYSTEM MONITOR ═══</div>
-  </div>
-
   <!-- Main Grid -->
   <div class="monitor-grid">
     <!-- CPU Section -->

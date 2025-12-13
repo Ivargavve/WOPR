@@ -14,8 +14,8 @@
    * @property {number} timestamp
    */
 
-  /** @type {{ visionOn: boolean, voiceOn: boolean }} */
-  let { visionOn = false, voiceOn = false } = $props();
+  /** @type {{ visionOn: boolean, voiceOn: boolean, onResponse?: (response: string, question?: string) => void }} */
+  let { visionOn = false, voiceOn = false, onResponse = undefined } = $props();
 
   /** @type {Message[]} */
   let messages = $state([
@@ -567,6 +567,11 @@ TYPE /help FOR AVAILABLE COMMANDS.`
           content: cleanedResponse,
           timestamp: Date.now()
         }];
+
+        // Notify parent of the response (for popup when not on assistant tab)
+        if (onResponse) {
+          onResponse(cleanedResponse, 'Screen analysis');
+        }
       }
 
       // Reload knowledge if updated
@@ -605,6 +610,13 @@ TYPE /help FOR AVAILABLE COMMANDS.`
 
   export function getDefconLevel() {
     return defconLevel;
+  }
+
+  export function getVoiceState() {
+    return {
+      isHearing: inCommandMode,
+      isSpeaking: false // TODO: Add TTS speaking state when implemented
+    };
   }
 
   /**
@@ -783,6 +795,12 @@ TYPE /help FOR AVAILABLE COMMANDS.`
         );
         // Reload knowledge after updates
         knowledge = await loadKnowledge();
+      }
+
+      // Notify parent of the response (for popup when not on assistant tab)
+      if (onResponse) {
+        const finalResponse = cleanedResponse || fullResponse;
+        onResponse(finalResponse, userMessage);
       }
     } catch (e) {
       console.error('AI error:', e);

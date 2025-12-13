@@ -13,16 +13,16 @@
 /** @type {ModeInfo[]} */
 export const MODES = [
   {
-    id: 'assistant',
-    name: 'AI Assistant',
-    icon: '>_',
-    description: 'Contextual AI help based on screen activity'
-  },
-  {
     id: 'monitor',
     name: 'System Monitor',
     icon: '[]',
     description: 'CPU, RAM, and system performance'
+  },
+  {
+    id: 'assistant',
+    name: 'AI Assistant',
+    icon: '>_',
+    description: 'Contextual AI help based on screen activity'
   },
   {
     id: 'music',
@@ -51,7 +51,7 @@ export const MODES = [
 ];
 
 /** @type {ModeType} */
-let currentMode = $state('assistant');
+let currentMode = $state('monitor');
 
 /** @type {ModeType | null} */
 let previousMode = $state(null);

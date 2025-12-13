@@ -8,3 +8,4 @@ export { default as RetroText } from './RetroText.svelte';
 export { default as RetroSelect } from './RetroSelect.svelte';
 export { default as ModeSelector } from './ModeSelector.svelte';
 export { default as SettingsPanel } from './SettingsPanel.svelte';
+export { default as AIPopup } from './AIPopup.svelte';

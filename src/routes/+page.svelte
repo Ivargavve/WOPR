@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { RetroButton, ModeSelector, SettingsPanel } from '$lib/components';
+  import { RetroButton, ModeSelector, SettingsPanel, AIPopup } from '$lib/components';
   import { getCurrentMode, getCurrentModeInfo } from '$lib/stores/mode.svelte.js';
   import { AssistantMode, MonitorMode, PomodoroMode } from '$lib/modes';
   import { loadConfig, saveConfig } from '$lib/services/storage.js';
@@ -20,6 +20,19 @@
 
   /** @type {import('$lib/modes').AssistantMode | null} */
   let assistantModeRef = $state(null);
+
+  // Voice activity indicators
+  let isHearing = $state(false);
+  let isSpeaking = $state(false);
+
+  // Screen capture countdown
+  let captureCountdown = $state(0);
+  let lastCaptureTime = $state(Date.now());
+
+  // AI Popup state (for when not on assistant tab)
+  let showAIPopup = $state(false);
+  let popupMessage = $state('');
+  let popupQuestion = $state('');
 
   // Reload memory periodically
   async function reloadMemory() {
@@ -72,6 +85,27 @@
       const now = new Date();
       time = now.toLocaleTimeString('en-US', { hour12: false });
       syncDefcon();
+
+      // Update capture countdown if vision is on
+      if (visionOn && currentConfig) {
+        const elapsed = Date.now() - lastCaptureTime;
+        const remaining = Math.max(0, currentConfig.capture_interval_ms - elapsed);
+        captureCountdown = Math.ceil(remaining / 1000);
+
+        // Reset timer when countdown hits 0
+        if (remaining <= 0) {
+          lastCaptureTime = Date.now();
+        }
+      } else {
+        captureCountdown = 0;
+      }
+
+      // Sync voice activity from assistant mode
+      if (assistantModeRef) {
+        const voiceState = assistantModeRef.getVoiceState?.() || { isHearing: false, isSpeaking: false };
+        isHearing = voiceState.isHearing;
+        isSpeaking = voiceState.isSpeaking;
+      }
     };
     updateTime();
     timeInterval = setInterval(updateTime, 1000);
@@ -139,6 +173,25 @@
       assistantModeRef.triggerScan();
     }
   }
+
+  /**
+   * Handle AI response - show popup if not on assistant tab
+   * @param {string} response
+   * @param {string} [question]
+   */
+  function handleAIResponse(response, question) {
+    if (currentMode !== 'assistant') {
+      popupMessage = response;
+      popupQuestion = question || '';
+      showAIPopup = true;
+    }
+  }
+
+  function closeAIPopup() {
+    showAIPopup = false;
+    popupMessage = '';
+    popupQuestion = '';
+  }
 </script>
 
 <main class="wopr-container">
@@ -148,13 +201,15 @@
     <!-- Left column: content + control bar -->
     <div class="left-column">
       <section class="content-area">
-        {#if currentMode === 'assistant'}
-          <AssistantMode bind:this={assistantModeRef} {visionOn} voiceOn={listening} />
-        {:else if currentMode === 'monitor'}
+        <!-- AssistantMode always runs in background for voice/vision -->
+        <div class="mode-content" class:hidden={currentMode !== 'assistant'}>
+          <AssistantMode bind:this={assistantModeRef} {visionOn} voiceOn={listening} onResponse={handleAIResponse} />
+        </div>
+        {#if currentMode === 'monitor'}
           <MonitorMode />
         {:else if currentMode === 'pomodoro'}
           <PomodoroMode />
-        {:else}
+        {:else if currentMode !== 'assistant'}
           <div class="coming-soon">
             <p class="mode-title">[{modeInfo.icon}] {modeInfo.name}</p>
             <p class="dim">> Coming soon...</p>
@@ -169,14 +224,14 @@
           disabled={currentMode !== 'assistant'}
         />
         <RetroButton
-          icon="■"
-          label="VISION"
+          icon={visionOn ? '■' : '▶'}
+          label="EYE"
           active={visionOn}
           onclick={toggleVision}
         />
         <RetroButton
-          icon="♫"
-          label="MIC"
+          icon={listening ? '♫' : '○'}
+          label="VOICE"
           active={listening}
           onclick={toggleListening}
         />
@@ -202,6 +257,8 @@
           <span class="status-value glow">{status}</span>
           <span class="status-sep">|</span>
           <span class="time-value">{time}</span>
+          <span class="status-sep">|</span>
+          <span class="defcon-inline defcon-{defconLevel}">DEFCON {defconLevel}</span>
         </div>
       </div>
 
@@ -211,40 +268,8 @@
         <ModeSelector />
       </div>
 
-      <!-- DEFCON Level -->
-      <div class="sidebar-section">
-        <div class="section-label">DEFCON</div>
-        <div class="defcon-display defcon-{defconLevel}">
-          <span class="defcon-number">{defconLevel}</span>
-          <span class="defcon-status">
-            {#if defconLevel === 5}FADE OUT
-            {:else if defconLevel === 4}DOUBLE TAKE
-            {:else if defconLevel === 3}ROUND HOUSE
-            {:else if defconLevel === 2}FAST PACE
-            {:else}COCKED PISTOL{/if}
-          </span>
-        </div>
-      </div>
-
-      <!-- Status indicators -->
-      <div class="sidebar-section">
-        <div class="section-label">STATUS</div>
-        <div class="status-indicators">
-          <div class="indicator" class:active={visionOn}>
-            <span class="indicator-icon">■</span>
-            <span class="indicator-label">EYE</span>
-            <span class="indicator-value">{visionOn ? 'ON' : 'OFF'}</span>
-          </div>
-          <div class="indicator" class:active={listening}>
-            <span class="indicator-icon">♫</span>
-            <span class="indicator-label">MIC</span>
-            <span class="indicator-value">{listening ? 'ON' : 'OFF'}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Memory Bank -->
-      <div class="sidebar-section">
+      <!-- Memory Bank (dropdown overlay) -->
+      <div class="sidebar-section memory-section">
         <button class="section-label memory-toggle" onclick={() => showMemory = !showMemory}>
           MEMORY [{memoryItems.length}] {showMemory ? '▲' : '▼'}
         </button>
@@ -264,6 +289,32 @@
         {/if}
       </div>
 
+      <!-- Status indicators (above tips) -->
+      <div class="sidebar-section status-section">
+        <div class="status-indicators">
+          <div class="indicator" class:active={visionOn}>
+            <span class="indicator-icon">{visionOn ? '■' : '▶'}</span>
+            <span class="indicator-label">EYE</span>
+            <span class="indicator-value">{visionOn ? captureCountdown + 's' : '—'}</span>
+          </div>
+          <div class="indicator" class:active={listening}>
+            <span class="indicator-icon">{listening ? '♫' : '○'}</span>
+            <span class="indicator-label">VOICE</span>
+            <span class="indicator-value">
+              {#if !listening}
+                —
+              {:else if isHearing}
+                <span class="blink">HEAR</span>
+              {:else if isSpeaking}
+                <span class="blink">SPEAK</span>
+              {:else}
+                ON
+              {/if}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <!-- Tips -->
       <div class="sidebar-section tips-section">
         <div class="tips-box">
@@ -279,6 +330,13 @@
   </div>
 
   <SettingsPanel show={showSettings} onclose={handleSettingsClose} />
+  <AIPopup
+    show={showAIPopup}
+    message={popupMessage}
+    question={popupQuestion}
+    autoDismissSeconds={15}
+    onclose={closeAIPopup}
+  />
 </main>
 
 <style>
@@ -328,10 +386,24 @@
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+    position: relative;
+  }
+
+  .mode-content {
+    height: 100%;
+  }
+
+  .mode-content.hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
   }
 
   .sidebar {
-    width: 220px;
+    width: 180px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -344,7 +416,7 @@
   }
 
   .wopr-ascii {
-    font-size: 0.6rem;
+    font-size: 0.42rem;
     line-height: 1.1;
     color: var(--text-primary);
     text-shadow: 0 0 10px var(--text-primary), 0 0 20px rgba(0, 255, 65, 0.3);
@@ -389,19 +461,23 @@
     margin-bottom: 0.2rem;
   }
 
+  .status-section {
+    margin-top: auto;
+  }
+
   .status-indicators {
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 0.5rem 0;
   }
 
   .indicator {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
+    gap: 0.2rem;
     color: var(--text-dim);
-    padding: 0.3rem 0;
   }
 
   .indicator.active {
@@ -409,64 +485,48 @@
   }
 
   .indicator.active .indicator-icon {
-    text-shadow: 0 0 8px var(--text-primary);
+    text-shadow: 0 0 10px var(--text-primary);
   }
 
   .indicator-icon {
-    width: 1.2rem;
-    text-align: center;
-    font-size: 1rem;
+    font-size: 1.4rem;
   }
 
   .indicator-label {
-    flex: 1;
     text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
   }
 
   .indicator-value {
     font-family: var(--font-mono);
+    font-size: 0.7rem;
   }
 
-  /* DEFCON Display */
-  .defcon-display {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.5rem;
-    border: 1px solid var(--border-color);
-    background: var(--bg-panel);
+  .blink {
+    animation: blink-anim 0.5s ease-in-out infinite;
   }
 
-  .defcon-number {
-    font-size: 1.8rem;
-    font-weight: bold;
+  @keyframes blink-anim {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* DEFCON Inline (in status line) */
+  .defcon-inline {
     font-family: var(--font-mono);
-    min-width: 2rem;
-    text-align: center;
-  }
-
-  .defcon-status {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0.8;
   }
 
-  .defcon-5 { color: var(--text-primary); }
-  .defcon-5 .defcon-number { text-shadow: 0 0 10px var(--text-primary); }
-
-  .defcon-4 { color: #7fff7f; }
-  .defcon-4 .defcon-number { text-shadow: 0 0 10px #7fff7f; }
-
-  .defcon-3 { color: #ffff00; }
-  .defcon-3 .defcon-number { text-shadow: 0 0 10px #ffff00; }
-
-  .defcon-2 { color: #ffa500; }
-  .defcon-2 .defcon-number { text-shadow: 0 0 10px #ffa500; }
-
-  .defcon-1 { color: #ff4444; }
-  .defcon-1 .defcon-number { text-shadow: 0 0 15px #ff4444, 0 0 30px #ff4444; }
-  .defcon-1 { animation: defcon-alert 1s ease-in-out infinite; }
+  .defcon-inline.defcon-5 { color: var(--text-primary); }
+  .defcon-inline.defcon-4 { color: #7fff7f; }
+  .defcon-inline.defcon-3 { color: #ffff00; }
+  .defcon-inline.defcon-2 { color: #ffa500; }
+  .defcon-inline.defcon-1 {
+    color: #ff4444;
+    animation: defcon-alert 1s ease-in-out infinite;
+  }
 
   @keyframes defcon-alert {
     0%, 100% { opacity: 1; }
@@ -474,6 +534,10 @@
   }
 
   /* Memory Section */
+  .memory-section {
+    position: relative;
+  }
+
   .memory-toggle {
     width: 100%;
     background: none;
@@ -486,7 +550,6 @@
     cursor: pointer;
     text-align: left;
     padding: 0;
-    margin-bottom: 0.3rem;
   }
 
   .memory-toggle:hover {
@@ -494,11 +557,17 @@
   }
 
   .memory-list {
-    max-height: 120px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 150px;
     overflow-y: auto;
     border: 1px solid var(--border-color);
-    background: var(--bg-panel);
+    background: var(--bg-primary);
     padding: 0.3rem;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   }
 
   .memory-item {
@@ -535,29 +604,28 @@
 
   /* Tips Section */
   .tips-section {
-    margin-top: auto;
   }
 
   .tips-box {
     border: 1px solid var(--border-color);
-    padding: 0.5rem;
+    padding: 0.3rem 0.4rem;
     background: var(--bg-panel);
   }
 
   .tips-title {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.2rem;
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.2rem;
+    padding-bottom: 0.15rem;
   }
 
   .tips-content {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     color: var(--text-dim);
-    line-height: 1.6;
+    line-height: 1.4;
   }
 
   .tips-content .cmd {
