@@ -43,6 +43,14 @@ pub struct AppConfig {
     /// Selected microphone device ID (None = system default)
     #[serde(default)]
     pub selected_microphone: Option<String>,
+
+    /// Whether screen time tracking is enabled
+    #[serde(default = "default_screentime_enabled")]
+    pub screentime_enabled: bool,
+}
+
+fn default_screentime_enabled() -> bool {
+    true
 }
 
 fn default_user_name() -> String {
@@ -88,6 +96,7 @@ impl Default for AppConfig {
             data_folder_path: None,
             selected_monitor: None,      // Use primary/default monitor
             selected_microphone: None,   // Use system default microphone
+            screentime_enabled: true,    // Enable screen time tracking by default
         }
     }
 }
@@ -130,7 +139,7 @@ fn get_plugins_dir(config: &AppConfig) -> PathBuf {
 }
 
 /// Get the captures directory path (in user's data folder)
-fn get_captures_dir(config: &AppConfig) -> PathBuf {
+pub fn get_captures_dir(config: &AppConfig) -> PathBuf {
     get_data_folder(config).join("captures")
 }
 

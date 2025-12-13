@@ -1,6 +1,6 @@
 mod services;
 
-use services::{capture, permissions, storage, system_info, window};
+use services::{activity_tracker, capture, permissions, storage, system_info, window};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -37,12 +37,20 @@ pub fn run() {
             permissions::open_privacy_settings,
             permissions::test_screen_capture,
             system_info::get_system_stats,
+            activity_tracker::track_activity,
+            activity_tracker::get_activity_stats,
+            activity_tracker::reset_activity_today,
         ])
         .setup(|app| {
             // Initialize storage directories and default config
             if let Err(e) = storage::init_storage(app.handle()) {
                 eprintln!("Failed to initialize storage: {}", e);
             }
+
+            // Initialize activity tracker with captures directory from user config
+            let config = storage::load_config(app.handle().clone());
+            let captures_dir = storage::get_captures_dir(&config);
+            app.manage(activity_tracker::ActivityTracker::new(captures_dir));
 
             // Restore window state on startup
             if let Some(window) = app.get_webview_window("main") {

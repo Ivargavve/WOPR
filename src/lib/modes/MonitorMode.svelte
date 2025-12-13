@@ -2,10 +2,12 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
 
-  /** @typedef {{ cpu_usage: number, cpu_count: number, memory_used: number, memory_total: number, memory_percent: number, disk_used: number, disk_total: number, disk_percent: number, temperature: number | null, network_in: number, network_out: number, uptime_seconds: number, processes: Array<{ pid: number, name: string, cpu_usage: number, memory_mb: number, status: string }> }} SystemStats */
+  /** @typedef {{ cpu_usage: number, cpu_count: number, cpu_name: string, cpu_brand: string, cpu_vendor: string, memory_used: number, memory_total: number, memory_percent: number, disk_used: number, disk_total: number, disk_percent: number, cpu_temperature: number | null, gpu_temperature: number | null, gpu_name: string | null, gpu_usage: number | null, gpu_memory_used: number | null, gpu_memory_total: number | null, network_in: number, network_out: number, uptime_seconds: number, processes: Array<{ pid: number, name: string, cpu_usage: number, memory_mb: number, status: string }> }} SystemStats */
 
   let cpu = $state(0);
   let cpuCount = $state(0);
+  let cpuName = $state('');
+  let cpuBrand = $state('');
   let ram = $state(0);
   let ramUsed = $state(0);
   let ramTotal = $state(0);
@@ -16,16 +18,30 @@
   let lastNetworkIn = $state(0);
   let lastNetworkOut = $state(0);
   let uptime = $state('00:00:00');
-  let temperature = $state(/** @type {number | null} */ (null));
+  let cpuTemperature = $state(/** @type {number | null} */ (null));
+  let gpuTemperature = $state(/** @type {number | null} */ (null));
+  let gpuName = $state(/** @type {string | null} */ (null));
+  let gpuUsage = $state(/** @type {number | null} */ (null));
+  let gpuMemoryUsed = $state(/** @type {number | null} */ (null));
+  let gpuMemoryTotal = $state(/** @type {number | null} */ (null));
   let processes = $state(/** @type {Array<{ pid: number, name: string, cpu_usage: number, memory_mb: number, status: string }>} */ ([]));
   let error = $state(/** @type {string | null} */ (null));
 
+  /**
+   * @param {number} value
+   * @param {number} width
+   * @returns {string}
+   */
   function generateBar(value, width = 25) {
     const filled = Math.round((value / 100) * width);
     const empty = width - filled;
     return '█'.repeat(filled) + '░'.repeat(empty);
   }
 
+  /**
+   * @param {number} bytes
+   * @returns {string}
+   */
   function formatBytes(bytes) {
     if (bytes >= 1e12) return (bytes / 1e12).toFixed(1) + 'TB';
     if (bytes >= 1e9) return (bytes / 1e9).toFixed(1) + 'GB';
@@ -34,6 +50,10 @@
     return bytes + 'B';
   }
 
+  /**
+   * @param {number} seconds
+   * @returns {string}
+   */
   function formatUptime(seconds) {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -48,13 +68,20 @@
 
       cpu = stats.cpu_usage;
       cpuCount = stats.cpu_count;
+      cpuName = stats.cpu_name;
+      cpuBrand = stats.cpu_brand;
       ram = stats.memory_percent;
       ramUsed = stats.memory_used;
       ramTotal = stats.memory_total;
       disk = stats.disk_percent;
       diskUsed = stats.disk_used;
       diskTotal = stats.disk_total;
-      temperature = stats.temperature;
+      cpuTemperature = stats.cpu_temperature;
+      gpuTemperature = stats.gpu_temperature;
+      gpuName = stats.gpu_name;
+      gpuUsage = stats.gpu_usage;
+      gpuMemoryUsed = stats.gpu_memory_used;
+      gpuMemoryTotal = stats.gpu_memory_total;
       uptime = formatUptime(stats.uptime_seconds);
       processes = stats.processes;
 
@@ -85,12 +112,20 @@
     return () => clearInterval(interval);
   });
 
+  /**
+   * @param {number} value
+   * @returns {string}
+   */
   function getVariant(value) {
     if (value > 80) return 'danger';
     if (value > 60) return 'warning';
     return 'normal';
   }
 
+  /**
+   * @param {string} status
+   * @returns {string}
+   */
   function formatProcessStatus(status) {
     // Convert Rust debug format like "Run" to display format
     if (status.includes('Run')) return 'ACTIVE';
@@ -112,12 +147,12 @@
   <div class="monitor-grid">
     <!-- CPU Section -->
     <div class="stat-box">
-      <div class="stat-title">CPU USAGE</div>
+      <div class="stat-title">{cpuBrand || cpuName || 'CPU'}</div>
       <div class="stat-value {getVariant(cpu)}">{Math.round(cpu)}%</div>
       <div class="stat-bar {getVariant(cpu)}">{generateBar(cpu)}</div>
       <div class="stat-details">
         <span>CORES: {cpuCount}</span>
-        <span>THREADS: {cpuCount * 2}</span>
+        <span>USAGE: {Math.round(cpu)}%</span>
       </div>
     </div>
 
@@ -143,18 +178,34 @@
       </div>
     </div>
 
-    <!-- Temperature -->
+    <!-- CPU Temperature -->
     <div class="stat-box">
-      <div class="stat-title">TEMPERATURE</div>
-      {#if temperature !== null}
-        <div class="stat-value {temperature > 70 ? 'danger' : temperature > 55 ? 'warning' : 'normal'}">{Math.round(temperature)}°C</div>
-        <div class="stat-bar {temperature > 70 ? 'danger' : temperature > 55 ? 'warning' : 'normal'}">{generateBar(temperature)}</div>
+      <div class="stat-title">CPU TEMP</div>
+      {#if cpuTemperature !== null}
+        <div class="stat-value {cpuTemperature > 70 ? 'danger' : cpuTemperature > 55 ? 'warning' : 'normal'}">{Math.round(cpuTemperature)}°C</div>
+        <div class="stat-bar {cpuTemperature > 70 ? 'danger' : cpuTemperature > 55 ? 'warning' : 'normal'}">{generateBar(cpuTemperature)}</div>
       {:else}
         <div class="stat-value dim">N/A</div>
         <div class="stat-bar dim">—</div>
       {/if}
       <div class="stat-details">
         <span>MIN: 35°C</span>
+        <span>MAX: 100°C</span>
+      </div>
+    </div>
+
+    <!-- GPU Temperature -->
+    <div class="stat-box">
+      <div class="stat-title">GPU TEMP</div>
+      {#if gpuTemperature !== null}
+        <div class="stat-value {gpuTemperature > 80 ? 'danger' : gpuTemperature > 65 ? 'warning' : 'normal'}">{Math.round(gpuTemperature)}°C</div>
+        <div class="stat-bar {gpuTemperature > 80 ? 'danger' : gpuTemperature > 65 ? 'warning' : 'normal'}">{generateBar(gpuTemperature)}</div>
+      {:else}
+        <div class="stat-value dim">N/A</div>
+        <div class="stat-bar dim">—</div>
+      {/if}
+      <div class="stat-details">
+        <span>MIN: 40°C</span>
         <span>MAX: 100°C</span>
       </div>
     </div>
@@ -252,8 +303,14 @@
 
   .monitor-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 0.5rem;
+  }
+
+  @media (max-width: 900px) {
+    .monitor-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
   }
 
   @media (max-width: 700px) {

@@ -31,13 +31,21 @@ impl Default for SystemMonitor {
 pub struct SystemStats {
     pub cpu_usage: f32,
     pub cpu_count: usize,
+    pub cpu_name: String,
+    pub cpu_brand: String,
+    pub cpu_vendor: String,
     pub memory_used: u64,
     pub memory_total: u64,
     pub memory_percent: f32,
     pub disk_used: u64,
     pub disk_total: u64,
     pub disk_percent: f32,
-    pub temperature: Option<f32>,
+    pub cpu_temperature: Option<f32>,
+    pub gpu_temperature: Option<f32>,
+    pub gpu_name: Option<String>,
+    pub gpu_usage: Option<f32>,
+    pub gpu_memory_used: Option<u64>,
+    pub gpu_memory_total: Option<u64>,
     pub network_in: u64,
     pub network_out: u64,
     pub uptime_seconds: u64,
@@ -71,6 +79,17 @@ pub fn get_system_stats(state: tauri::State<SystemMonitor>) -> Result<SystemStat
         sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>() / sys.cpus().len() as f32
     };
 
+    // CPU info (get from first CPU as they're all the same model)
+    let (cpu_name, cpu_brand, cpu_vendor) = if let Some(cpu) = sys.cpus().first() {
+        (
+            cpu.name().to_string(),
+            cpu.brand().to_string(),
+            cpu.vendor_id().to_string(),
+        )
+    } else {
+        (String::from("Unknown"), String::from("Unknown"), String::from("Unknown"))
+    };
+
     // Memory
     let memory_used = sys.used_memory();
     let memory_total = sys.total_memory();
@@ -94,15 +113,42 @@ pub fn get_system_stats(state: tauri::State<SystemMonitor>) -> Result<SystemStat
         0.0
     };
 
-    // Temperature (try to get CPU temp)
+    // Temperature (separate CPU and GPU temps)
     let components = Components::new_with_refreshed_list();
-    let temperature = components
+
+    // CPU temperature - look for CPU/core/die/package labels
+    let cpu_temperature = components
         .iter()
         .find(|c| {
             let label = c.label().to_lowercase();
-            label.contains("cpu") || label.contains("core") || label.contains("die")
+            label.contains("cpu") || label.contains("core") || label.contains("die") || label.contains("package")
         })
         .map(|c| c.temperature());
+
+    // GPU temperature - look for GPU labels
+    // On macOS: TG0P, IGPU are common GPU/graphics indicators
+    // On Linux: usually labeled as "gpu" or "Graphics"
+    let gpu_temperature = components
+        .iter()
+        .find(|c| {
+            let label = c.label().to_lowercase();
+            label.contains("gpu") || label.contains("graphics") ||
+            label.contains("tg0p") || label.contains("tg0d") ||
+            label.contains("igpu")
+        })
+        .map(|c| c.temperature());
+
+    // GPU info - sysinfo doesn't provide GPU stats natively
+    // These would require platform-specific APIs (Metal for macOS, NVML for NVIDIA, etc.)
+    // For now, we'll leave them as None, but we can detect if a GPU temp is available
+    let gpu_name = if gpu_temperature.is_some() {
+        Some(String::from("GPU")) // Generic name, could be enhanced with platform-specific detection
+    } else {
+        None
+    };
+    let gpu_usage: Option<f32> = None;
+    let gpu_memory_used: Option<u64> = None;
+    let gpu_memory_total: Option<u64> = None;
 
     // Network I/O (sum all interfaces)
     let (network_in, network_out) = networks.iter().fold((0u64, 0u64), |(rx, tx), (_, data)| {
@@ -136,13 +182,21 @@ pub fn get_system_stats(state: tauri::State<SystemMonitor>) -> Result<SystemStat
     Ok(SystemStats {
         cpu_usage,
         cpu_count: sys.cpus().len(),
+        cpu_name,
+        cpu_brand,
+        cpu_vendor,
         memory_used,
         memory_total,
         memory_percent,
         disk_used,
         disk_total,
         disk_percent,
-        temperature,
+        cpu_temperature,
+        gpu_temperature,
+        gpu_name,
+        gpu_usage,
+        gpu_memory_used,
+        gpu_memory_total,
         network_in,
         network_out,
         uptime_seconds,

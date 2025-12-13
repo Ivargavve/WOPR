@@ -1,3 +1,4 @@
+pub mod activity_tracker;
 pub mod capture;
 pub mod permissions;
 pub mod storage;

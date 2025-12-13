@@ -1,5 +1,5 @@
 /**
- * @typedef {'assistant' | 'monitor' | 'music' | 'pomodoro' | 'chat' | 'control'} ModeType
+ * @typedef {'assistant' | 'monitor' | 'screentime' | 'pomodoro'} ModeType
  */
 
 /**
@@ -25,28 +25,16 @@ export const MODES = [
     description: 'JOSHUA'
   },
   {
-    id: 'music',
-    name: 'Music Player',
-    icon: '>>',
-    description: 'Music controls'
+    id: 'screentime',
+    name: 'Screen Time',
+    icon: '@@',
+    description: 'App tracking'
   },
   {
     id: 'pomodoro',
     name: 'Pomodoro Timer',
     icon: '()',
     description: 'Focus timer'
-  },
-  {
-    id: 'chat',
-    name: 'Chat Hub',
-    icon: '##',
-    description: 'Unified messaging'
-  },
-  {
-    id: 'control',
-    name: 'Control Deck',
-    icon: '<>',
-    description: 'Quick actions'
   }
 ];
 

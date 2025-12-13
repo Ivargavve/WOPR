@@ -2,10 +2,11 @@
   import { onMount } from 'svelte';
   import { RetroButton, ModeSelector, SettingsPanel, AIPopup } from '$lib/components';
   import { getCurrentMode, getCurrentModeInfo } from '$lib/stores/mode.svelte.js';
-  import { AssistantMode, MonitorMode, PomodoroMode } from '$lib/modes';
+  import { AssistantMode, MonitorMode, PomodoroMode, ScreenTimeMode } from '$lib/modes';
   import { loadConfig, saveConfig } from '$lib/services/storage.js';
   import { loadKnowledge } from '$lib/services/knowledge.js';
   import * as permissions from '$lib/services/permissions.js';
+  import { invoke } from '@tauri-apps/api/core';
 
   let time = $state('');
   let status = $state('INITIALIZING');
@@ -33,6 +34,9 @@
   let showAIPopup = $state(false);
   let popupMessage = $state('');
   let popupQuestion = $state('');
+
+  // Screen time tracking state
+  let screentimeEnabled = $state(true);
 
   // Reload memory periodically
   async function reloadMemory() {
@@ -69,6 +73,7 @@
       currentConfig = config;
       visionOn = config.vision_enabled;
       listening = config.voice_enabled;
+      screentimeEnabled = config.screentime_enabled ?? true;
       // Update status after config loads
       setTimeout(() => {
         status = visionOn ? 'OBSERVING' : 'STANDBY';
@@ -79,6 +84,19 @@
         status = 'STANDBY';
       }, 1500);
     });
+
+    // Background screen time tracking (runs always, updates every 60s)
+    const trackScreenTime = async () => {
+      if (screentimeEnabled) {
+        try {
+          await invoke('track_activity');
+        } catch (e) {
+          console.error('Screen time tracking error:', e);
+        }
+      }
+    };
+    trackScreenTime();
+    const screentimeInterval = setInterval(trackScreenTime, 60000);
 
     // Update time every second and sync state
     const updateTime = () => {
@@ -117,6 +135,7 @@
     return () => {
       if (timeInterval) clearInterval(timeInterval);
       clearInterval(memoryInterval);
+      clearInterval(screentimeInterval);
     };
   });
 
@@ -209,6 +228,8 @@
           <MonitorMode />
         {:else if currentMode === 'pomodoro'}
           <PomodoroMode />
+        {:else if currentMode === 'screentime'}
+          <ScreenTimeMode />
         {:else if currentMode !== 'assistant'}
           <div class="coming-soon">
             <p class="mode-title">[{modeInfo.icon}] {modeInfo.name}</p>
@@ -221,7 +242,7 @@
         <RetroButton
           icon="@"
           onclick={handleScan}
-          disabled={currentMode !== 'assistant'}
+          disabled={!visionOn && currentMode !== 'assistant'}
         />
         <RetroButton
           icon={visionOn ? '■' : '▶'}
