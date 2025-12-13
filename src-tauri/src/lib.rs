@@ -1,11 +1,12 @@
 mod services;
 
-use services::{capture, permissions, storage, window};
+use services::{capture, permissions, storage, system_info, window};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(system_info::SystemMonitor::new())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_macos_permissions::init())
@@ -35,6 +36,7 @@ pub fn run() {
             permissions::open_microphone_settings,
             permissions::open_privacy_settings,
             permissions::test_screen_capture,
+            system_info::get_system_stats,
         ])
         .setup(|app| {
             // Initialize storage directories and default config
