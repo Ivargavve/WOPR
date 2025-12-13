@@ -264,7 +264,6 @@
 
       <!-- Mode selector -->
       <div class="sidebar-section">
-        <div class="section-label">MODE</div>
         <ModeSelector />
       </div>
 
@@ -293,12 +292,10 @@
       <div class="sidebar-section status-section">
         <div class="status-indicators">
           <div class="indicator" class:active={visionOn}>
-            <span class="indicator-icon">{visionOn ? '■' : '▶'}</span>
             <span class="indicator-label">EYE</span>
             <span class="indicator-value">{visionOn ? captureCountdown + 's' : '—'}</span>
           </div>
           <div class="indicator" class:active={listening}>
-            <span class="indicator-icon">{listening ? '♫' : '○'}</span>
             <span class="indicator-label">VOICE</span>
             <span class="indicator-value">
               {#if !listening}

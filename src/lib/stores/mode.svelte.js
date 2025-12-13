@@ -16,37 +16,37 @@ export const MODES = [
     id: 'monitor',
     name: 'System Monitor',
     icon: '[]',
-    description: 'CPU, RAM, and system performance'
+    description: 'System stats'
   },
   {
     id: 'assistant',
     name: 'AI Assistant',
     icon: '>_',
-    description: 'Contextual AI help based on screen activity'
+    description: 'JOSHUA'
   },
   {
     id: 'music',
     name: 'Music Player',
     icon: '>>',
-    description: 'Music controls and now playing'
+    description: 'Music controls'
   },
   {
     id: 'pomodoro',
     name: 'Pomodoro Timer',
     icon: '()',
-    description: 'Focus timer with work/break cycles'
+    description: 'Focus timer'
   },
   {
     id: 'chat',
     name: 'Chat Hub',
     icon: '##',
-    description: 'Multi-platform messaging overview'
+    description: 'Unified messaging'
   },
   {
     id: 'control',
     name: 'Control Deck',
     icon: '<>',
-    description: 'Quick actions and shortcuts'
+    description: 'Quick actions'
   }
 ];
 

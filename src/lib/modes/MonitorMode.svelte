@@ -68,7 +68,7 @@
   <div class="monitor-grid">
     <!-- CPU Section -->
     <div class="stat-box">
-      <div class="stat-title">═══ CPU USAGE ═══</div>
+      <div class="stat-title">CPU USAGE</div>
       <div class="stat-value {getVariant(cpu)}">{Math.round(cpu)}%</div>
       <div class="stat-bar {getVariant(cpu)}">{generateBar(cpu)}</div>
       <div class="stat-details">
@@ -79,7 +79,7 @@
 
     <!-- Memory Section -->
     <div class="stat-box">
-      <div class="stat-title">═══ MEMORY ═══</div>
+      <div class="stat-title">MEMORY</div>
       <div class="stat-value {getVariant(ram)}">{Math.round(ram)}%</div>
       <div class="stat-bar {getVariant(ram)}">{generateBar(ram)}</div>
       <div class="stat-details">
@@ -90,7 +90,7 @@
 
     <!-- Disk Section -->
     <div class="stat-box">
-      <div class="stat-title">═══ DISK I/O ═══</div>
+      <div class="stat-title">DISK I/O</div>
       <div class="stat-value">{Math.round(disk)}%</div>
       <div class="stat-bar">{generateBar(disk)}</div>
       <div class="stat-details">
@@ -101,7 +101,7 @@
 
     <!-- Temperature -->
     <div class="stat-box">
-      <div class="stat-title">═══ TEMPERATURE ═══</div>
+      <div class="stat-title">TEMPERATURE</div>
       <div class="stat-value {temperature > 70 ? 'danger' : temperature > 55 ? 'warning' : 'normal'}">{Math.round(temperature)}°C</div>
       <div class="stat-bar {temperature > 70 ? 'danger' : temperature > 55 ? 'warning' : 'normal'}">{generateBar(temperature)}</div>
       <div class="stat-details">
