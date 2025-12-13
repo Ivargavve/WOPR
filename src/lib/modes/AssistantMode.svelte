@@ -836,7 +836,7 @@ TYPE /help FOR AVAILABLE COMMANDS.`
           {@const isNewSpeaker = !prevMessage || prevMessage.role !== message.role}
           <div class="terminal-line {message.role}" class:new-speaker={isNewSpeaker}>
             <span class="msg-content">
-              {#if message.role === 'user'}<span class="user-prefix">&gt; </span>{/if}{message.content}{#if message.role === 'assistant' && isLoading && i === messages.length - 1}<span class="loading-cursor">█</span>{/if}
+              {message.content}{#if message.role === 'assistant' && isLoading && i === messages.length - 1}<span class="loading-cursor">█</span>{/if}
             </span>
             <span class="timestamp">{new Date(message.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </div>

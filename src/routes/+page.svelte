@@ -38,6 +38,9 @@
   // Screen time tracking state
   let screentimeEnabled = $state(true);
 
+  // Fullscreen mode (hide sidebar and bottom bar)
+  let fullscreenMode = $state(false);
+
   // Reload memory periodically
   async function reloadMemory() {
     try {
@@ -213,7 +216,7 @@
   }
 </script>
 
-<main class="wopr-container">
+<main class="wopr-container" class:fullscreen={fullscreenMode}>
   <div class="scanlines"></div>
 
   <div class="main-row">
@@ -227,7 +230,7 @@
         {#if currentMode === 'monitor'}
           <MonitorMode />
         {:else if currentMode === 'pomodoro'}
-          <PomodoroMode />
+          <PomodoroMode fullscreen={fullscreenMode} />
         {:else if currentMode === 'screentime'}
           <ScreenTimeMode />
         {:else if currentMode !== 'assistant'}
@@ -238,114 +241,123 @@
         {/if}
       </section>
 
-      <footer class="control-bar">
-        <RetroButton
-          icon="@"
-          onclick={handleScan}
-          disabled={!visionOn && currentMode !== 'assistant'}
-        />
-        <RetroButton
-          icon={visionOn ? '■' : '▶'}
-          label="EYE"
-          active={visionOn}
-          onclick={toggleVision}
-        />
-        <RetroButton
-          icon={listening ? '♫' : '○'}
-          label="VOICE"
-          active={listening}
-          onclick={toggleListening}
-        />
-        <RetroButton
-          icon="⚙"
-          label="CONFIG"
-          onclick={toggleSettings}
-        />
-      </footer>
+      {#if !fullscreenMode}
+        <footer class="control-bar">
+          <RetroButton
+            icon="@"
+            onclick={handleScan}
+            disabled={!visionOn && currentMode !== 'assistant'}
+          />
+          <RetroButton
+            icon={visionOn ? '■' : '▶'}
+            label="EYE"
+            active={visionOn}
+            onclick={toggleVision}
+          />
+          <RetroButton
+            icon={listening ? '♫' : '○'}
+            label="VOICE"
+            active={listening}
+            onclick={toggleListening}
+          />
+          <RetroButton
+            icon="⚙"
+            label="CONFIG"
+            onclick={toggleSettings}
+          />
+        </footer>
+      {/if}
     </div>
 
     <!-- Sidebar - right side -->
-    <aside class="sidebar">
-      <!-- WOPR Logo -->
-      <div class="logo-section">
-        <pre class="wopr-ascii">██╗    ██╗ ██████╗ ██████╗ ██████╗
+    {#if !fullscreenMode}
+      <aside class="sidebar">
+        <!-- WOPR Logo -->
+        <div class="logo-section">
+          <pre class="wopr-ascii">██╗    ██╗ ██████╗ ██████╗ ██████╗
 ██║    ██║██╔═══██╗██╔══██╗██╔══██╗
 ██║ █╗ ██║██║   ██║██████╔╝██████╔╝
 ██║███╗██║██║   ██║██╔═══╝ ██╔══██╗
 ╚███╔███╔╝╚██████╔╝██║     ██║  ██║
  ╚══╝╚══╝  ╚═════╝ ╚═╝     ╚═╝  ╚═╝</pre>
-        <div class="status-line">
-          <span class="status-value glow">{status}</span>
-          <span class="status-sep">|</span>
-          <span class="time-value">{time}</span>
-          <span class="status-sep">|</span>
-          <span class="defcon-inline defcon-{defconLevel}">DEFCON {defconLevel}</span>
+          <div class="status-line">
+            <span class="status-value glow">{status}</span>
+            <span class="status-sep">|</span>
+            <span class="time-value">{time}</span>
+            <span class="status-sep">|</span>
+            <span class="defcon-inline defcon-{defconLevel}">DEFCON {defconLevel}</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Mode selector -->
-      <div class="sidebar-section">
-        <ModeSelector />
-      </div>
+        <!-- Mode selector -->
+        <div class="sidebar-section">
+          <ModeSelector />
+        </div>
 
-      <!-- Memory Bank (dropdown overlay) -->
-      <div class="sidebar-section memory-section">
-        <button class="section-label memory-toggle" onclick={() => showMemory = !showMemory}>
-          MEMORY [{memoryItems.length}] {showMemory ? '▲' : '▼'}
-        </button>
-        {#if showMemory}
-          <div class="memory-list">
-            {#if memoryItems.length === 0}
-              <div class="memory-empty">NO DATA</div>
-            {:else}
-              {#each memoryItems as item, i}
-                <div class="memory-item">
-                  <span class="memory-index">{i + 1}.</span>
-                  <span class="memory-text">{item}</span>
-                </div>
-              {/each}
-            {/if}
-          </div>
-        {/if}
-      </div>
-
-      <!-- Status indicators (above tips) -->
-      <div class="sidebar-section status-section">
-        <div class="status-indicators">
-          <div class="indicator" class:active={visionOn}>
-            <span class="indicator-label">EYE</span>
-            <span class="indicator-value">{visionOn ? captureCountdown + 's' : '—'}</span>
-          </div>
-          <div class="indicator" class:active={listening}>
-            <span class="indicator-label">VOICE</span>
-            <span class="indicator-value">
-              {#if !listening}
-                —
-              {:else if isHearing}
-                <span class="blink">HEAR</span>
-              {:else if isSpeaking}
-                <span class="blink">SPEAK</span>
+        <!-- Memory Bank (dropdown overlay) -->
+        <div class="sidebar-section memory-section">
+          <button class="section-label memory-toggle" onclick={() => showMemory = !showMemory}>
+            MEMORY [{memoryItems.length}] {showMemory ? '▲' : '▼'}
+          </button>
+          {#if showMemory}
+            <div class="memory-list">
+              {#if memoryItems.length === 0}
+                <div class="memory-empty">NO DATA</div>
               {:else}
-                ON
+                {#each memoryItems as item, i}
+                  <div class="memory-item">
+                    <span class="memory-index">{i + 1}.</span>
+                    <span class="memory-text">{item}</span>
+                  </div>
+                {/each}
               {/if}
-            </span>
-          </div>
+            </div>
+          {/if}
         </div>
-      </div>
 
-      <!-- Tips -->
-      <div class="sidebar-section tips-section">
-        <div class="tips-box">
-          <div class="tips-title">TERMINAL</div>
-          <div class="tips-content">
-            Type <span class="cmd">/help</span> for commands
-            <br/><span class="cmd">/memory</span> view memories
-            <br/><span class="cmd">/defcon 1-5</span> alert level
+        <!-- Status indicators (above tips) -->
+        <div class="sidebar-section status-section">
+          <div class="status-indicators">
+            <div class="indicator" class:active={visionOn}>
+              <span class="indicator-label">EYE</span>
+              <span class="indicator-value">{visionOn ? captureCountdown + 's' : '—'}</span>
+            </div>
+            <div class="indicator" class:active={listening}>
+              <span class="indicator-label">VOICE</span>
+              <span class="indicator-value">
+                {#if !listening}
+                  —
+                {:else if isHearing}
+                  <span class="blink">HEAR</span>
+                {:else if isSpeaking}
+                  <span class="blink">SPEAK</span>
+                {:else}
+                  ON
+                {/if}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-    </aside>
+
+        <!-- Tips -->
+        <div class="sidebar-section tips-section">
+          <div class="tips-box">
+            <div class="tips-title">TERMINAL</div>
+            <div class="tips-content">
+              Type <span class="cmd">/help</span> for commands
+              <br/><span class="cmd">/memory</span> view memories
+              <br/><span class="cmd">/defcon 1-5</span> alert level
+            </div>
+          </div>
+        </div>
+      </aside>
+    {/if}
   </div>
+
+  <!-- Fullscreen toggle button - always visible in bottom right -->
+  <button class="fullscreen-toggle" onclick={() => fullscreenMode = !fullscreenMode} title={fullscreenMode ? 'Show panels' : 'Hide panels'}>
+    {fullscreenMode ? '◤' : '◢'}
+  </button>
 
   <SettingsPanel show={showSettings} onclose={handleSettingsClose} />
   <AIPopup
@@ -391,6 +403,16 @@
     flex: 1;
     gap: 0.5rem;
     min-height: 0;
+  }
+
+  /* Fullscreen mode - remove padding and gaps */
+  .wopr-container.fullscreen {
+    padding: 0;
+    gap: 0;
+  }
+
+  .wopr-container.fullscreen .main-row {
+    gap: 0;
   }
 
   .left-column {
@@ -676,6 +698,33 @@
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
     margin-top: auto;
+  }
+
+  /* Fullscreen toggle button */
+  .fullscreen-toggle {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-dim);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+  }
+
+  .fullscreen-toggle:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+    opacity: 1;
+    background: rgba(0, 255, 65, 0.1);
   }
 
   .control-bar :global(button) {

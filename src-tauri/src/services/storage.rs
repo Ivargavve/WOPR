@@ -372,3 +372,53 @@ fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<(), String> {
     Ok(())
 }
 
+/// Pomodoro settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PomodoroSettings {
+    pub work_minutes: u32,
+    pub break_minutes: u32,
+    pub long_break_minutes: u32,
+    pub sessions_until_long_break: u32,
+}
+
+impl Default for PomodoroSettings {
+    fn default() -> Self {
+        Self {
+            work_minutes: 25,
+            break_minutes: 5,
+            long_break_minutes: 15,
+            sessions_until_long_break: 4,
+        }
+    }
+}
+
+/// Load pomodoro settings from captures folder
+#[tauri::command]
+pub fn load_pomodoro_settings(app: AppHandle) -> PomodoroSettings {
+    let config = load_config(app);
+    let path = get_captures_dir(&config).join("pomodoro_settings.json");
+
+    if path.exists() {
+        if let Ok(content) = fs::read_to_string(&path) {
+            if let Ok(settings) = serde_json::from_str(&content) {
+                return settings;
+            }
+        }
+    }
+
+    PomodoroSettings::default()
+}
+
+/// Save pomodoro settings to captures folder
+#[tauri::command]
+pub fn save_pomodoro_settings(app: AppHandle, settings: PomodoroSettings) -> Result<(), String> {
+    let config = load_config(app);
+    ensure_data_directories(&config)?;
+
+    let path = get_captures_dir(&config).join("pomodoro_settings.json");
+    let json = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    fs::write(&path, json).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
