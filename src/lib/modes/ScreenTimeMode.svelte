@@ -228,18 +228,18 @@
   }
 
   .stat-block.total .stat-value {
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     text-shadow: 0 0 12px var(--text-primary);
   }
 
   .stat-value {
-    font-size: 0.85rem;
+    font-size: 1.1rem;
     font-weight: bold;
     color: var(--text-primary);
   }
 
   .stat-label {
-    font-size: 0.45rem;
+    font-size: 0.6rem;
     color: var(--text-dim);
     letter-spacing: 0.1em;
     margin-top: 0.15rem;
@@ -255,7 +255,7 @@
   }
 
   .top-apps-label {
-    font-size: 0.45rem;
+    font-size: 0.6rem;
     color: var(--text-dim);
     letter-spacing: 0.1em;
   }
@@ -263,18 +263,18 @@
   .top-apps-list {
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
+    gap: 0.15rem;
     overflow-y: auto;
-    max-height: 70px;
+    max-height: 80px;
   }
 
   .top-app-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.55rem;
+    font-size: 0.7rem;
     color: var(--text-dim);
-    padding: 0.1rem 0;
+    padding: 0.15rem 0;
   }
 
   .top-app-row.first {
@@ -298,13 +298,13 @@
   }
 
   .top-app-seen {
-    font-size: 0.5rem;
+    font-size: 0.6rem;
     opacity: 0.6;
     font-family: var(--font-mono);
   }
 
   .no-data {
-    font-size: 0.5rem;
+    font-size: 0.65rem;
     color: var(--text-dim);
     opacity: 0.5;
   }
@@ -325,13 +325,13 @@
   }
 
   .today-label {
-    font-size: 0.55rem;
+    font-size: 0.7rem;
     color: var(--text-dim);
     letter-spacing: 0.15em;
   }
 
   .today-total {
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     font-weight: bold;
     color: var(--text-primary);
     text-shadow: 0 0 15px var(--text-primary);
@@ -377,13 +377,13 @@
   }
 
   .category-name {
-    font-size: 0.55rem;
+    font-size: 0.7rem;
     color: var(--text-dim);
     letter-spacing: 0.1em;
   }
 
   .category-percent {
-    font-size: 1rem;
+    font-size: 1.3rem;
     font-weight: bold;
     color: var(--text-primary);
     text-shadow: 0 0 10px var(--text-primary);
@@ -398,9 +398,9 @@
   .app-row {
     display: flex;
     justify-content: space-between;
-    padding: 0.35rem 0.3rem;
+    padding: 0.4rem 0.4rem;
     border-bottom: 1px dashed var(--border-color);
-    font-size: 0.6rem;
+    font-size: 0.7rem;
   }
 
   .app-row:last-child {
@@ -425,7 +425,7 @@
   }
 
   .app-seen {
-    font-size: 0.5rem;
+    font-size: 0.6rem;
     color: var(--text-dim);
     opacity: 0.6;
     font-family: var(--font-mono);
@@ -433,9 +433,9 @@
 
   .app-time {
     color: var(--text-primary);
-    font-size: 0.55rem;
+    font-size: 0.7rem;
     white-space: nowrap;
-    min-width: 28px;
+    min-width: 35px;
     text-align: right;
   }
 
@@ -444,13 +444,13 @@
     opacity: 0.5;
     text-align: center;
     padding: 1.5rem;
-    font-size: 0.55rem;
+    font-size: 0.7rem;
   }
 
   .screentime-footer {
     display: flex;
     justify-content: flex-end;
-    font-size: 0.5rem;
+    font-size: 0.6rem;
     color: var(--text-dim);
     padding-top: 0.3rem;
   }

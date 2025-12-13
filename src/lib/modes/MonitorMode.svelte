@@ -6,7 +6,6 @@
 
   let cpu = $state(0);
   let cpuCount = $state(0);
-  let cpuName = $state('');
   let cpuBrand = $state('');
   let ram = $state(0);
   let ramUsed = $state(0);
@@ -20,23 +19,8 @@
   let uptime = $state('00:00:00');
   let cpuTemperature = $state(/** @type {number | null} */ (null));
   let gpuTemperature = $state(/** @type {number | null} */ (null));
-  let gpuName = $state(/** @type {string | null} */ (null));
-  let gpuUsage = $state(/** @type {number | null} */ (null));
-  let gpuMemoryUsed = $state(/** @type {number | null} */ (null));
-  let gpuMemoryTotal = $state(/** @type {number | null} */ (null));
   let processes = $state(/** @type {Array<{ pid: number, name: string, cpu_usage: number, memory_mb: number, status: string }>} */ ([]));
   let error = $state(/** @type {string | null} */ (null));
-
-  /**
-   * @param {number} value
-   * @param {number} width
-   * @returns {string}
-   */
-  function generateBar(value, width = 25) {
-    const filled = Math.round((value / 100) * width);
-    const empty = width - filled;
-    return '█'.repeat(filled) + '░'.repeat(empty);
-  }
 
   /**
    * @param {number} bytes
@@ -61,6 +45,19 @@
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
+  /**
+   * Calculate stroke-dashoffset for donut chart
+   * @param {number} percent
+   * @param {number} radius
+   * @returns {number}
+   */
+  function getDonutOffset(percent, radius = 36) {
+    const circumference = 2 * Math.PI * radius;
+    return circumference - (percent / 100) * circumference;
+  }
+
+  const CIRCUMFERENCE = 2 * Math.PI * 36;
+
   async function fetchStats() {
     try {
       /** @type {SystemStats} */
@@ -68,7 +65,6 @@
 
       cpu = stats.cpu_usage;
       cpuCount = stats.cpu_count;
-      cpuName = stats.cpu_name;
       cpuBrand = stats.cpu_brand;
       ram = stats.memory_percent;
       ramUsed = stats.memory_used;
@@ -78,14 +74,10 @@
       diskTotal = stats.disk_total;
       cpuTemperature = stats.cpu_temperature;
       gpuTemperature = stats.gpu_temperature;
-      gpuName = stats.gpu_name;
-      gpuUsage = stats.gpu_usage;
-      gpuMemoryUsed = stats.gpu_memory_used;
-      gpuMemoryTotal = stats.gpu_memory_total;
       uptime = formatUptime(stats.uptime_seconds);
       processes = stats.processes;
 
-      // Calculate network rate (bytes per second since last check)
+      // Calculate network rate
       if (lastNetworkIn > 0) {
         network = {
           in: Math.max(0, stats.network_in - lastNetworkIn),
@@ -103,12 +95,8 @@
   }
 
   onMount(() => {
-    // Fetch immediately
     fetchStats();
-
-    // Then refresh every 2 seconds (to avoid too much overhead)
     const interval = setInterval(fetchStats, 2000);
-
     return () => clearInterval(interval);
   });
 
@@ -116,10 +104,23 @@
    * @param {number} value
    * @returns {string}
    */
-  function getVariant(value) {
-    if (value > 80) return 'danger';
-    if (value > 60) return 'warning';
-    return 'normal';
+  function getColor(value) {
+    if (value > 80) return '#ff4444';
+    if (value > 60) return '#ffa500';
+    return '#00ff41';
+  }
+
+  /**
+   * @param {number} temp
+   * @param {boolean} [isGpu=false]
+   * @returns {string}
+   */
+  function getTempColor(temp, isGpu = false) {
+    const high = isGpu ? 80 : 70;
+    const warn = isGpu ? 65 : 55;
+    if (temp > high) return '#ff4444';
+    if (temp > warn) return '#ffa500';
+    return '#00ff41';
   }
 
   /**
@@ -127,11 +128,10 @@
    * @returns {string}
    */
   function formatProcessStatus(status) {
-    // Convert Rust debug format like "Run" to display format
-    if (status.includes('Run')) return 'ACTIVE';
-    if (status.includes('Sleep')) return 'SLEEP';
-    if (status.includes('Idle')) return 'IDLE';
-    return status.toUpperCase().slice(0, 6);
+    if (status.includes('Run')) return 'RUN';
+    if (status.includes('Sleep')) return 'SLP';
+    if (status.includes('Idle')) return 'IDL';
+    return status.toUpperCase().slice(0, 3);
   }
 </script>
 
@@ -143,121 +143,147 @@
     </div>
   {/if}
 
-  <!-- Main Grid -->
-  <div class="monitor-grid">
-    <!-- CPU Section -->
-    <div class="stat-box">
-      <div class="stat-title">{cpuBrand || cpuName || 'CPU'}</div>
-      <div class="stat-value {getVariant(cpu)}">{Math.round(cpu)}%</div>
-      <div class="stat-bar {getVariant(cpu)}">{generateBar(cpu)}</div>
-      <div class="stat-details">
-        <span>CORES: {cpuCount}</span>
-        <span>USAGE: {Math.round(cpu)}%</span>
+  <!-- Main Stats with Donuts -->
+  <div class="stats-row">
+    <!-- CPU -->
+    <div class="stat-card">
+      <div class="donut-container">
+        <svg viewBox="0 0 80 80" class="donut">
+          <circle cx="40" cy="40" r="36" class="donut-bg" />
+          <circle
+            cx="40" cy="40" r="36"
+            class="donut-fill"
+            style="stroke: {getColor(cpu)}; stroke-dashoffset: {getDonutOffset(cpu)};"
+          />
+        </svg>
+        <div class="donut-value" style="color: {getColor(cpu)}">{Math.round(cpu)}%</div>
       </div>
+      <div class="stat-label">{cpuBrand || 'CPU'}</div>
+      <div class="stat-sub">{cpuCount} cores</div>
     </div>
 
-    <!-- Memory Section -->
-    <div class="stat-box">
-      <div class="stat-title">MEMORY</div>
-      <div class="stat-value {getVariant(ram)}">{Math.round(ram)}%</div>
-      <div class="stat-bar {getVariant(ram)}">{generateBar(ram)}</div>
-      <div class="stat-details">
-        <span>USED: {formatBytes(ramUsed)}</span>
-        <span>TOTAL: {formatBytes(ramTotal)}</span>
+    <!-- Memory -->
+    <div class="stat-card">
+      <div class="donut-container">
+        <svg viewBox="0 0 80 80" class="donut">
+          <circle cx="40" cy="40" r="36" class="donut-bg" />
+          <circle
+            cx="40" cy="40" r="36"
+            class="donut-fill"
+            style="stroke: {getColor(ram)}; stroke-dashoffset: {getDonutOffset(ram)};"
+          />
+        </svg>
+        <div class="donut-value" style="color: {getColor(ram)}">{Math.round(ram)}%</div>
       </div>
+      <div class="stat-label">MEMORY</div>
+      <div class="stat-sub">{formatBytes(ramUsed)} / {formatBytes(ramTotal)}</div>
     </div>
 
-    <!-- Disk Section -->
-    <div class="stat-box">
-      <div class="stat-title">DISK</div>
-      <div class="stat-value {getVariant(disk)}">{Math.round(disk)}%</div>
-      <div class="stat-bar {getVariant(disk)}">{generateBar(disk)}</div>
-      <div class="stat-details">
-        <span>USED: {formatBytes(diskUsed)}</span>
-        <span>TOTAL: {formatBytes(diskTotal)}</span>
+    <!-- Disk -->
+    <div class="stat-card">
+      <div class="donut-container">
+        <svg viewBox="0 0 80 80" class="donut">
+          <circle cx="40" cy="40" r="36" class="donut-bg" />
+          <circle
+            cx="40" cy="40" r="36"
+            class="donut-fill"
+            style="stroke: {getColor(disk)}; stroke-dashoffset: {getDonutOffset(disk)};"
+          />
+        </svg>
+        <div class="donut-value" style="color: {getColor(disk)}">{Math.round(disk)}%</div>
       </div>
+      <div class="stat-label">DISK</div>
+      <div class="stat-sub">{formatBytes(diskUsed)} / {formatBytes(diskTotal)}</div>
     </div>
 
-    <!-- CPU Temperature -->
-    <div class="stat-box">
-      <div class="stat-title">CPU TEMP</div>
-      {#if cpuTemperature !== null}
-        <div class="stat-value {cpuTemperature > 70 ? 'danger' : cpuTemperature > 55 ? 'warning' : 'normal'}">{Math.round(cpuTemperature)}°C</div>
-        <div class="stat-bar {cpuTemperature > 70 ? 'danger' : cpuTemperature > 55 ? 'warning' : 'normal'}">{generateBar(cpuTemperature)}</div>
-      {:else}
-        <div class="stat-value dim">N/A</div>
-        <div class="stat-bar dim">—</div>
-      {/if}
-      <div class="stat-details">
-        <span>MIN: 35°C</span>
-        <span>MAX: 100°C</span>
+    <!-- CPU Temp - only show if available -->
+    {#if cpuTemperature !== null}
+      <div class="stat-card">
+        <div class="donut-container">
+          <svg viewBox="0 0 80 80" class="donut">
+            <circle cx="40" cy="40" r="36" class="donut-bg" />
+            <circle
+              cx="40" cy="40" r="36"
+              class="donut-fill"
+              style="stroke: {getTempColor(cpuTemperature)}; stroke-dashoffset: {getDonutOffset(cpuTemperature)};"
+            />
+          </svg>
+          <div class="donut-value" style="color: {getTempColor(cpuTemperature)}">
+            {Math.round(cpuTemperature)}°
+          </div>
+        </div>
+        <div class="stat-label">CPU TEMP</div>
+        <div class="stat-sub">Active</div>
       </div>
-    </div>
+    {/if}
 
-    <!-- GPU Temperature -->
-    <div class="stat-box">
-      <div class="stat-title">GPU TEMP</div>
-      {#if gpuTemperature !== null}
-        <div class="stat-value {gpuTemperature > 80 ? 'danger' : gpuTemperature > 65 ? 'warning' : 'normal'}">{Math.round(gpuTemperature)}°C</div>
-        <div class="stat-bar {gpuTemperature > 80 ? 'danger' : gpuTemperature > 65 ? 'warning' : 'normal'}">{generateBar(gpuTemperature)}</div>
-      {:else}
-        <div class="stat-value dim">N/A</div>
-        <div class="stat-bar dim">—</div>
-      {/if}
-      <div class="stat-details">
-        <span>MIN: 40°C</span>
-        <span>MAX: 100°C</span>
+    <!-- GPU Temp - only show if available -->
+    {#if gpuTemperature !== null}
+      <div class="stat-card">
+        <div class="donut-container">
+          <svg viewBox="0 0 80 80" class="donut">
+            <circle cx="40" cy="40" r="36" class="donut-bg" />
+            <circle
+              cx="40" cy="40" r="36"
+              class="donut-fill"
+              style="stroke: {getTempColor(gpuTemperature, true)}; stroke-dashoffset: {getDonutOffset(gpuTemperature)};"
+            />
+          </svg>
+          <div class="donut-value" style="color: {getTempColor(gpuTemperature, true)}">
+            {Math.round(gpuTemperature)}°
+          </div>
+        </div>
+        <div class="stat-label">GPU TEMP</div>
+        <div class="stat-sub">Active</div>
       </div>
-    </div>
+    {/if}
   </div>
 
-  <!-- Network & Info Row -->
+  <!-- Info Row -->
   <div class="info-row">
-    <div class="info-box">
-      <div class="info-title">NETWORK I/O</div>
-      <div class="network-stats">
-        <div class="net-stat">
-          <span class="net-label">▼ IN:</span>
-          <span class="net-value">{formatBytes(network.in)}/s</span>
-        </div>
-        <div class="net-stat">
-          <span class="net-label">▲ OUT:</span>
-          <span class="net-value">{formatBytes(network.out)}/s</span>
-        </div>
+    <div class="info-item">
+      <span class="info-label">NETWORK</span>
+      <div class="info-values">
+        <span>▼ {formatBytes(network.in)}/s</span>
+        <span>▲ {formatBytes(network.out)}/s</span>
       </div>
     </div>
-
-    <div class="info-box">
-      <div class="info-title">SYSTEM UPTIME</div>
-      <div class="uptime-display">{uptime}</div>
+    <div class="info-item">
+      <span class="info-label">UPTIME</span>
+      <span class="uptime-value">{uptime}</span>
     </div>
-
-    <div class="info-box">
-      <div class="info-title">STATUS</div>
-      <div class="status-display">
+    <div class="info-item">
+      <span class="info-label">STATUS</span>
+      <span class="status-value">
         <span class="status-dot" class:active={!error}></span>
-        {error ? 'MONITORING ERROR' : 'ALL SYSTEMS NOMINAL'}
-      </div>
+        {error ? 'ERROR' : 'NOMINAL'}
+      </span>
     </div>
   </div>
 
   <!-- Process List -->
   <div class="process-section">
-    <div class="process-grid">
-      <div class="process-header">
-        <span>PID</span>
-        <span>NAME</span>
-        <span>CPU</span>
-        <span>MEM</span>
-        <span>STATUS</span>
-      </div>
+    <div class="process-header">
+      <span>PID</span>
+      <span>PROCESS</span>
+      <span class="bar-header">CPU USAGE</span>
+      <span>MEM</span>
+    </div>
+    <div class="process-list">
       {#each processes as proc}
         <div class="process-row">
           <span class="pid">{proc.pid}</span>
           <span class="name">{proc.name.slice(0, 16)}</span>
-          <span class="cpu" class:warning={proc.cpu_usage > 50}>{proc.cpu_usage.toFixed(1)}%</span>
-          <span class="mem">{proc.memory_mb >= 1024 ? (proc.memory_mb / 1024).toFixed(1) + 'GB' : proc.memory_mb.toFixed(0) + 'MB'}</span>
-          <span class="status" class:active={proc.status.includes('Run')}>{formatProcessStatus(proc.status)}</span>
+          <div class="cpu-bar-container">
+            <div
+              class="cpu-bar"
+              class:warning={proc.cpu_usage > 50}
+              class:critical={proc.cpu_usage > 80}
+              style="width: {Math.min(proc.cpu_usage, 100)}%"
+            ></div>
+            <span class="cpu-value" class:warning={proc.cpu_usage > 50}>{proc.cpu_usage.toFixed(1)}%</span>
+          </div>
+          <span class="mem">{proc.memory_mb >= 1024 ? (proc.memory_mb / 1024).toFixed(1) + 'G' : proc.memory_mb.toFixed(0) + 'M'}</span>
         </div>
       {/each}
     </div>
@@ -265,9 +291,9 @@
 
   <!-- Footer -->
   <div class="monitor-footer">
-    <span>WOPR SYSTEM MONITOR v2.0</span>
-    <span>REFRESH: 2000ms</span>
-    <span>NODE: PRIMARY</span>
+    <span>SYSTEM MONITOR</span>
+    <span class="live-dot"></span>
+    <span>LIVE</span>
   </div>
 </div>
 
@@ -277,15 +303,14 @@
     flex-direction: column;
     height: 100%;
     padding: 0.5rem;
-    gap: 0.5rem;
+    gap: 0.6rem;
     font-family: var(--font-mono);
     overflow: hidden;
   }
 
   .error-box {
     background: rgba(255, 0, 0, 0.1);
-    border: 1px solid #ff4444;
-    padding: 0.5rem;
+    padding: 0.4rem 0.6rem;
     display: flex;
     gap: 0.5rem;
     font-size: 0.6rem;
@@ -301,195 +326,176 @@
     flex: 1;
   }
 
-  .monitor-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0.5rem;
+  /* Stats Row with Donuts */
+  .stats-row {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0;
+    flex: 1;
+    min-height: 0;
   }
 
-  @media (max-width: 900px) {
-    .monitor-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
+  .stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    flex: 1;
+    min-width: 0;
   }
 
-  @media (max-width: 700px) {
-    .monitor-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
+  .donut-container {
+    position: relative;
+    width: 130px;
+    height: 130px;
   }
 
-  .stat-box {
-    border: 1px solid var(--border-color);
-    padding: 0.5rem;
-    background: rgba(0, 20, 0, 0.3);
+  .donut {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
   }
 
-  .stat-title {
+  .donut-bg {
+    fill: none;
+    stroke: rgba(0, 255, 65, 0.1);
+    stroke-width: 6;
+  }
+
+  .donut-fill {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 226.2;
+    transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+  }
+
+  .donut-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-shadow: 0 0 10px currentColor;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-align: center;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stat-sub {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    opacity: 0.7;
+  }
+
+  /* Info Row */
+  .info-row {
+    display: flex;
+    justify-content: space-around;
+    padding: 0.4rem 0;
+    border-top: 1px dashed var(--border-color);
+    border-bottom: 1px dashed var(--border-color);
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+  }
+
+  .info-label {
     font-size: 0.6rem;
     color: var(--text-dim);
-    text-align: center;
-    margin-bottom: 0.3rem;
     letter-spacing: 0.1em;
   }
 
-  .stat-value {
-    font-size: 1.8rem;
-    font-weight: bold;
-    text-align: center;
-    color: var(--text-primary);
-    text-shadow: 0 0 15px var(--text-primary);
-  }
-
-  .stat-value.dim {
-    color: var(--text-dim);
-    text-shadow: none;
-  }
-
-  .stat-value.warning {
-    color: #ffa500;
-    text-shadow: 0 0 15px #ffa500;
-  }
-
-  .stat-value.danger {
-    color: #ff4444;
-    text-shadow: 0 0 15px #ff4444;
-    animation: pulse 1s ease-in-out infinite;
-  }
-
-  .stat-bar {
-    font-size: 0.5rem;
-    text-align: center;
-    color: var(--text-primary);
-    letter-spacing: -0.05em;
-    margin: 0.3rem 0;
-    text-shadow: 0 0 5px var(--text-primary);
-  }
-
-  .stat-bar.dim {
-    color: var(--text-dim);
-    text-shadow: none;
-  }
-
-  .stat-bar.warning {
-    color: #ffa500;
-    text-shadow: 0 0 5px #ffa500;
-  }
-
-  .stat-bar.danger {
-    color: #ff4444;
-    text-shadow: 0 0 5px #ff4444;
-  }
-
-  .stat-details {
+  .info-values {
     display: flex;
-    justify-content: space-between;
-    font-size: 0.55rem;
-    color: var(--text-dim);
-  }
-
-  .info-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-  }
-
-  .info-box {
-    border: 1px solid var(--border-color);
-    padding: 0.4rem;
-    background: rgba(0, 20, 0, 0.3);
-    text-align: center;
-  }
-
-  .info-title {
-    font-size: 0.55rem;
-    color: var(--text-dim);
-    margin-bottom: 0.3rem;
-    letter-spacing: 0.1em;
-  }
-
-  .network-stats {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-  }
-
-  .net-stat {
-    display: flex;
-    gap: 0.4rem;
-    font-size: 0.65rem;
-  }
-
-  .net-label {
-    color: var(--text-dim);
-  }
-
-  .net-value {
+    gap: 0.6rem;
+    font-size: 0.7rem;
     color: var(--text-primary);
   }
 
-  .uptime-display {
+  .uptime-value {
     font-size: 1.1rem;
     font-weight: bold;
     color: var(--text-primary);
-    text-shadow: 0 0 10px var(--text-primary);
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.15em;
+    text-shadow: 0 0 8px var(--text-primary);
+    letter-spacing: 0.1em;
   }
 
-  .status-display {
+  .status-value {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-size: 0.65rem;
+    gap: 0.3rem;
+    font-size: 0.75rem;
     color: var(--text-primary);
   }
 
   .status-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: #ff4444;
   }
 
   .status-dot.active {
     background: var(--text-primary);
-    box-shadow: 0 0 10px var(--text-primary);
-    animation: blink 2s ease-in-out infinite;
+    box-shadow: 0 0 8px var(--text-primary);
+    animation: pulse 2s ease-in-out infinite;
   }
 
+  /* Process Section */
   .process-section {
     flex: 1;
-    border: 1px solid var(--border-color);
-    padding: 0.4rem 0.5rem;
-    background: rgba(0, 20, 0, 0.3);
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     min-height: 0;
-  }
-
-  .process-grid {
-    font-size: 0.65rem;
+    max-height: 180px;
+    overflow: hidden;
   }
 
   .process-header {
     display: grid;
-    grid-template-columns: 55px 1fr 55px 60px 60px;
-    gap: 0.4rem;
-    padding: 0.3rem 0;
-    border-bottom: 1px solid var(--border-color);
+    grid-template-columns: 50px 100px 1fr 50px;
+    gap: 0.5rem;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.6rem;
     color: var(--text-dim);
-    font-size: 0.55rem;
     letter-spacing: 0.05em;
+    border-bottom: 1px dashed var(--border-color);
+  }
+
+  .process-header .bar-header {
+    text-align: center;
+  }
+
+  .process-list {
+    flex: 1;
+    overflow-y: auto;
   }
 
   .process-row {
     display: grid;
-    grid-template-columns: 55px 1fr 55px 60px 60px;
-    gap: 0.4rem;
-    padding: 0.3rem 0;
-    border-bottom: 1px dashed var(--border-color);
+    grid-template-columns: 50px 100px 1fr 50px;
+    gap: 0.5rem;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.7rem;
     color: var(--text-primary);
+    border-bottom: 1px dashed rgba(0, 255, 65, 0.1);
+    align-items: center;
   }
 
   .process-row:last-child {
@@ -498,54 +504,98 @@
 
   .process-row .pid {
     color: var(--text-dim);
+    font-size: 0.65rem;
   }
 
   .process-row .name {
-    color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .process-row .cpu {
-    text-align: right;
+  .cpu-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 14px;
+    background: rgba(0, 255, 65, 0.05);
+    border: 1px solid rgba(0, 255, 65, 0.15);
+    position: relative;
+    padding-right: 45px;
   }
 
-  .process-row .cpu.warning {
+  .cpu-bar {
+    height: 100%;
+    background: var(--text-primary);
+    opacity: 0.6;
+    transition: width 0.3s ease;
+    min-width: 2px;
+  }
+
+  .cpu-bar.warning {
+    background: #ffa500;
+  }
+
+  .cpu-bar.critical {
+    background: #ff4444;
+  }
+
+  .cpu-value {
+    position: absolute;
+    right: 6px;
+    font-size: 0.6rem;
+    color: var(--text-primary);
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  }
+
+  .cpu-value.warning {
     color: #ffa500;
   }
 
   .process-row .mem {
     text-align: right;
     color: var(--text-dim);
+    font-size: 0.65rem;
   }
 
-  .process-row .status {
-    text-align: center;
-    font-size: 0.55rem;
-    color: var(--text-dim);
-  }
-
-  .process-row .status.active {
-    color: var(--text-primary);
-  }
-
+  /* Footer */
   .monitor-footer {
     display: flex;
-    justify-content: space-between;
-    font-size: 0.55rem;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.5rem;
     color: var(--text-dim);
-    padding-top: 0.4rem;
-    border-top: 1px solid var(--border-color);
+    padding-top: 0.3rem;
+  }
+
+  .live-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    animation: pulse 1.5s ease-in-out infinite;
   }
 
   @keyframes pulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    50% { opacity: 0.4; }
   }
 
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+  /* Responsive */
+  @media (max-width: 600px) {
+    .stats-row {
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      flex-basis: 30%;
+    }
+    .donut-container {
+      width: 70px;
+      height: 70px;
+    }
+    .donut-value {
+      font-size: 0.9rem;
+    }
   }
 </style>

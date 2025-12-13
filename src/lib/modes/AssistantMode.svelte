@@ -888,7 +888,7 @@ TYPE /help FOR AVAILABLE COMMANDS.`
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     line-height: 1.5;
     margin-bottom: 0.2rem;
     width: 100%;
@@ -915,11 +915,11 @@ TYPE /help FOR AVAILABLE COMMANDS.`
   .timestamp {
     color: rgba(255, 255, 255, 0.7);
     flex-shrink: 0;
-    font-size: 0.95rem;
+    font-size: 0.75rem;
     align-self: flex-start;
     padding-top: 0.05rem;
     font-family: 'Courier New', 'Lucida Console', monospace;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     font-weight: bold;
   }
 
