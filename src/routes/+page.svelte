@@ -7,6 +7,7 @@
   import { loadKnowledge } from '$lib/services/knowledge.js';
   import * as permissions from '$lib/services/permissions.js';
   import { invoke } from '@tauri-apps/api/core';
+  import { loadAndApplyTheme } from '$lib/services/colorTheme.js';
 
   let time = $state('');
   let status = $state('INITIALIZING');
@@ -71,6 +72,11 @@
   let timeInterval = null;
 
   onMount(() => {
+    // Load and apply color theme first
+    loadAndApplyTheme().catch(e => {
+      console.error('Failed to load color theme:', e);
+    });
+
     // Load config to get vision/voice state
     loadConfig().then(config => {
       currentConfig = config;
@@ -345,7 +351,7 @@
             <div class="tips-title">TERMINAL</div>
             <div class="tips-content">
               Type <span class="cmd">/help</span> for commands
-              <br/><span class="cmd">/memory</span> view memories
+              <br/><span class="cmd">/color 1-5</span> change theme
               <br/><span class="cmd">/defcon 1-5</span> alert level
             </div>
           </div>
@@ -459,7 +465,7 @@
     font-size: 0.42rem;
     line-height: 1.1;
     color: var(--text-primary);
-    text-shadow: 0 0 10px var(--text-primary), 0 0 20px rgba(0, 255, 65, 0.3);
+    text-shadow: 0 0 10px var(--text-primary), 0 0 20px var(--text-primary-30);
     margin: 0;
     font-family: var(--font-mono);
   }
@@ -724,7 +730,7 @@
     border-color: var(--text-primary);
     color: var(--text-primary);
     opacity: 1;
-    background: rgba(0, 255, 65, 0.1);
+    background: var(--text-primary-10);
   }
 
   .control-bar :global(button) {
@@ -747,6 +753,6 @@
   }
 
   .glow {
-    text-shadow: 0 0 10px var(--text-primary), 0 0 20px rgba(0, 255, 65, 0.3);
+    text-shadow: 0 0 10px var(--text-primary), 0 0 20px var(--text-primary-30);
   }
 </style>

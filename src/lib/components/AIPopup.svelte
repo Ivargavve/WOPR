@@ -111,14 +111,14 @@
     border: 2px solid var(--text-primary);
     background: var(--bg-primary);
     box-shadow:
-      0 0 20px rgba(0, 255, 65, 0.3),
-      inset 0 0 20px rgba(0, 255, 65, 0.05);
+      0 0 20px var(--text-primary-30),
+      inset 0 0 20px var(--text-primary-05);
   }
 
   .popup-header {
     padding: 0.6rem 1rem;
     border-bottom: 1px solid var(--text-primary);
-    background: rgba(0, 255, 65, 0.1);
+    background: var(--text-primary-10);
   }
 
   .popup-title {
@@ -194,6 +194,6 @@
     color: var(--text-primary);
     border-color: var(--text-primary);
     text-shadow: 0 0 10px var(--text-primary);
-    box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+    box-shadow: 0 0 10px var(--text-primary-30);
   }
 </style>

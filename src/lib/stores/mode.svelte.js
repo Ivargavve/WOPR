@@ -19,12 +19,6 @@ export const MODES = [
     description: 'System stats'
   },
   {
-    id: 'assistant',
-    name: 'AI Assistant',
-    icon: '>_',
-    description: 'JOSHUA'
-  },
-  {
     id: 'screentime',
     name: 'Screen Time',
     icon: '@@',
@@ -35,6 +29,12 @@ export const MODES = [
     name: 'Pomodoro Timer',
     icon: '()',
     description: 'Focus timer'
+  },
+  {
+    id: 'assistant',
+    name: 'Terminal',
+    icon: '>>',
+    description: 'Command line'
   }
 ];
 

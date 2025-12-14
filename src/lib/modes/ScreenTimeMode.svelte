@@ -209,7 +209,7 @@
     display: flex;
     gap: 1rem;
     padding: 0.6rem;
-    background: rgba(0, 255, 65, 0.03);
+    background: var(--text-primary-03);
     border-bottom: 1px dashed var(--border-color);
   }
 
@@ -364,7 +364,7 @@
   .category {
     display: flex;
     flex-direction: column;
-    background: rgba(0, 20, 0, 0.2);
+    background: var(--bg-tint-20);
     overflow: hidden;
   }
 
@@ -408,7 +408,7 @@
   }
 
   .app-row.top {
-    background: rgba(0, 255, 65, 0.08);
+    background: var(--text-primary-08);
   }
 
   .app-row.top .app-name {

@@ -1,6 +1,9 @@
 <script>
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
+  import { getCurrentTheme, onThemeChange } from '$lib/services/colorTheme.js';
+
+  let themeColor = $state(getCurrentTheme().primary);
 
   /** @typedef {{ cpu_usage: number, cpu_count: number, cpu_name: string, cpu_brand: string, cpu_vendor: string, memory_used: number, memory_total: number, memory_percent: number, disk_used: number, disk_total: number, disk_percent: number, cpu_temperature: number | null, gpu_temperature: number | null, gpu_name: string | null, gpu_usage: number | null, gpu_memory_used: number | null, gpu_memory_total: number | null, network_in: number, network_out: number, uptime_seconds: number, processes: Array<{ pid: number, name: string, cpu_usage: number, memory_mb: number, status: string }> }} SystemStats */
 
@@ -97,7 +100,13 @@
   onMount(() => {
     fetchStats();
     const interval = setInterval(fetchStats, 2000);
-    return () => clearInterval(interval);
+    const unsubscribe = onThemeChange((theme) => {
+      themeColor = theme.primary;
+    });
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   });
 
   /**
@@ -107,7 +116,7 @@
   function getColor(value) {
     if (value > 80) return '#ff4444';
     if (value > 60) return '#ffa500';
-    return '#00ff41';
+    return themeColor;
   }
 
   /**
@@ -120,7 +129,7 @@
     const warn = isGpu ? 65 : 55;
     if (temp > high) return '#ff4444';
     if (temp > warn) return '#ffa500';
-    return '#00ff41';
+    return themeColor;
   }
 
   /**
@@ -360,7 +369,7 @@
 
   .donut-bg {
     fill: none;
-    stroke: rgba(0, 255, 65, 0.1);
+    stroke: var(--text-primary-10);
     stroke-width: 6;
   }
 
@@ -494,7 +503,7 @@
     padding: 0.25rem 0.4rem;
     font-size: 0.7rem;
     color: var(--text-primary);
-    border-bottom: 1px dashed rgba(0, 255, 65, 0.1);
+    border-bottom: 1px dashed var(--text-primary-10);
     align-items: center;
   }
 
@@ -518,8 +527,8 @@
     align-items: center;
     gap: 0.5rem;
     height: 14px;
-    background: rgba(0, 255, 65, 0.05);
-    border: 1px solid rgba(0, 255, 65, 0.15);
+    background: var(--text-primary-05);
+    border: 1px solid var(--text-primary-15);
     position: relative;
     padding-right: 45px;
   }

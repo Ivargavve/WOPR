@@ -81,7 +81,7 @@
 
   .retro-btn.active {
     color: var(--text-primary);
-    text-shadow: 0 0 10px var(--text-primary), 0 0 20px rgba(0, 255, 65, 0.3);
+    text-shadow: 0 0 10px var(--text-primary), 0 0 20px var(--text-primary-30);
   }
 
   .retro-btn.active .btn-bracket {
@@ -98,7 +98,7 @@
   }
 
   .retro-btn.primary:hover:not(:disabled) {
-    text-shadow: 0 0 15px var(--text-primary), 0 0 30px rgba(0, 255, 65, 0.4);
+    text-shadow: 0 0 15px var(--text-primary), 0 0 30px var(--text-primary-40);
   }
 
   .retro-btn.warning {

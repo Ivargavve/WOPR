@@ -6,6 +6,7 @@
   import { loadKnowledge, parseAndExecuteKnowledgeCommands, removeKnowledge } from '$lib/services/knowledge.js';
   import * as voice from '$lib/services/voice.js';
   import { checkMicrophonePermission, requestMicrophonePermission } from 'tauri-plugin-macos-permissions-api';
+  import { setTheme, getCurrentTheme, getAllThemes } from '$lib/services/colorTheme.js';
 
   /**
    * @typedef {Object} Message
@@ -88,6 +89,7 @@
 /uptime /up      System uptime
 /games /g        List games
 /defcon /d [1-5] Alert level
+/color /c [1-5]  Change color theme
 /quote /q        Random quote
 /whoami /w       User identity
 /memory /m       View memories
@@ -212,6 +214,28 @@ USAGE: /defcon [1-5]
 STATUS: ${descriptions[/** @type {1|2|3|4|5} */ (level)]}
 
 ${level === 1 ? 'WARNING: MAXIMUM ALERT STATUS.\nALL FORCES PREPARE FOR IMMEDIATE RESPONSE.' : 'ACKNOWLEDGED.'}`
+        };
+      }
+
+      case '/color':
+      case '/c': {
+        const themeId = parseInt(args);
+        const themes = getAllThemes();
+        if (isNaN(themeId) || themeId < 1 || themeId > 5) {
+          const currentTheme = getCurrentTheme();
+          const themeList = themes.map(t => `  ${t.id} = ${t.name}${t.id === currentTheme.id ? ' (ACTIVE)' : ''}`).join('\n');
+          return {
+            handled: true,
+            output: `CURRENT THEME: ${currentTheme.name}
+
+USAGE: /color [1-5]
+${themeList}`
+          };
+        }
+        // Return special marker for async handling
+        return {
+          handled: true,
+          output: `__COLOR__${themeId}`
         };
       }
 
@@ -705,6 +729,37 @@ TYPE /help FOR AVAILABLE COMMANDS.`
         return;
       }
 
+      if (commandResult.output.startsWith('__COLOR__')) {
+        const themeId = parseInt(commandResult.output.replace('__COLOR__', ''));
+        try {
+          const result = await setTheme(themeId);
+          if (result.success) {
+            messages = [...messages, {
+              role: 'assistant',
+              content: `COLOR THEME CHANGED
+═══════════════════════════════════════
+NEW THEME: ${result.theme.name}
+
+VISUAL PARAMETERS UPDATED.`,
+              timestamp: Date.now()
+            }];
+          } else {
+            messages = [...messages, {
+              role: 'system',
+              content: 'ERROR: INVALID THEME ID.',
+              timestamp: Date.now()
+            }];
+          }
+        } catch (e) {
+          messages = [...messages, {
+            role: 'system',
+            content: 'ERROR: FAILED TO CHANGE COLOR THEME.',
+            timestamp: Date.now()
+          }];
+        }
+        return;
+      }
+
       // Regular command output
       messages = [...messages, {
         role: 'assistant',
@@ -925,7 +980,7 @@ TYPE /help FOR AVAILABLE COMMANDS.`
 
   .msg-content {
     color: var(--text-primary);
-    text-shadow: 0 0 10px rgba(0, 255, 65, 0.6), 0 0 20px rgba(0, 255, 65, 0.3);
+    text-shadow: 0 0 10px var(--text-primary-60), 0 0 20px var(--text-primary-30);
     white-space: pre-wrap;
     word-break: break-word;
     flex: 1;
@@ -971,7 +1026,7 @@ TYPE /help FOR AVAILABLE COMMANDS.`
   .loading-cursor {
     animation: cursor-blink 0.5s step-end infinite;
     color: var(--text-primary);
-    text-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+    text-shadow: 0 0 10px var(--text-primary-80);
   }
 
   @keyframes cursor-blink {

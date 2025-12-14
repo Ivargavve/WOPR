@@ -1,11 +1,14 @@
 <script>
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
+  import { getCurrentTheme, onThemeChange } from '$lib/services/colorTheme.js';
 
   /** @typedef {{ work_minutes: number, break_minutes: number, long_break_minutes: number, sessions_until_long_break: number }} PomodoroSettings */
 
   /** @type {{ fullscreen?: boolean }} */
   let { fullscreen = false } = $props();
+
+  let themeColor = $state(getCurrentTheme().primary);
 
   // Configurable times (in minutes)
   let workMinutes = $state(25);
@@ -92,7 +95,7 @@
   function getPhaseColor() {
     if (isLongBreak) return '#00bcd4';
     if (isBreak) return '#4caf50';
-    return '#00ff41';
+    return themeColor;
   }
 
   function getDonutOffset(percent, radius = 45) {
@@ -212,9 +215,13 @@
 
   onMount(() => {
     loadSettings();
+    const unsubscribe = onThemeChange((theme) => {
+      themeColor = theme.primary;
+    });
     return () => {
       if (interval) clearInterval(interval);
       if (saveTimeout) clearTimeout(saveTimeout);
+      unsubscribe();
     };
   });
 </script>
@@ -278,8 +285,9 @@
   <!-- Right Side Panel - hidden in fullscreen mode -->
   {#if !fullscreen}
   <div class="side-panel" class:collapsed={!showPanel}>
-    <button class="panel-toggle" onclick={() => showPanel = !showPanel}>
-      {showPanel ? '▶' : '◀'}
+    <button class="panel-toggle" onclick={() => showPanel = !showPanel} title={showPanel ? 'Hide settings' : 'Show settings'}>
+      <span class="toggle-icon">{showPanel ? '›' : '‹'}</span>
+      <span class="toggle-label">{showPanel ? '' : 'SETTINGS'}</span>
     </button>
 
     {#if showPanel}
@@ -376,7 +384,7 @@
 
   .donut-bg {
     fill: none;
-    stroke: rgba(0, 255, 65, 0.1);
+    stroke: var(--text-primary-10);
     stroke-width: 4;
   }
 
@@ -421,8 +429,8 @@
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: rgba(0, 255, 65, 0.15);
-    border: 2px solid rgba(0, 255, 65, 0.3);
+    background: var(--text-primary-15);
+    border: 2px solid var(--text-primary-30);
   }
 
   .dot.completed {
@@ -502,7 +510,7 @@
   .side-panel {
     position: relative;
     width: 180px;
-    background: rgba(0, 20, 0, 0.3);
+    background: var(--bg-tint-30);
     border-left: 1px dashed var(--border-color);
     display: flex;
     flex-direction: column;
@@ -515,25 +523,47 @@
 
   .panel-toggle {
     position: absolute;
-    left: 0;
+    left: -12px;
     top: 50%;
     transform: translateY(-50%);
-    width: 20px;
-    height: 50px;
-    background: transparent;
-    border: none;
-    border-right: 1px dashed var(--border-color);
+    background: var(--bg-tint-90);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
     color: var(--text-dim);
-    font-size: 0.7rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 5;
+    padding: 8px 4px;
+    gap: 2px;
+    flex-direction: column;
+    transition: all 0.2s ease;
+  }
+
+  .side-panel.collapsed .panel-toggle {
+    left: -24px;
+    padding: 10px 6px;
   }
 
   .panel-toggle:hover {
     color: var(--text-primary);
+    border-color: var(--text-primary);
+    box-shadow: 0 0 10px var(--text-primary-30);
+  }
+
+  .toggle-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+    font-weight: bold;
+  }
+
+  .toggle-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 0.5rem;
+    letter-spacing: 0.15em;
+    transform: rotate(180deg);
   }
 
   .panel-content {
@@ -598,7 +628,7 @@
   .adj-btn {
     width: 26px;
     height: 28px;
-    background: rgba(0, 255, 65, 0.05);
+    background: var(--text-primary-05);
     border: 1px solid var(--border-color);
     color: var(--text-dim);
     font-size: 1rem;
@@ -609,7 +639,7 @@
   }
 
   .adj-btn:hover {
-    background: rgba(0, 255, 65, 0.15);
+    background: var(--text-primary-15);
     border-color: var(--text-primary);
     color: var(--text-primary);
   }
@@ -617,7 +647,7 @@
   .setting-controls input {
     width: 40px;
     height: 28px;
-    background: rgba(0, 20, 0, 0.4);
+    background: var(--bg-tint-40);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     font-family: var(--font-mono);

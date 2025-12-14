@@ -379,7 +379,7 @@
   .settings-panel {
     background: var(--bg-primary);
     border: 2px solid var(--text-primary);
-    box-shadow: var(--glow-green), 0 0 40px rgba(0, 255, 65, 0.2);
+    box-shadow: var(--glow-green), 0 0 40px var(--text-primary-20);
     width: 100%;
     max-width: 450px;
     max-height: 90vh;

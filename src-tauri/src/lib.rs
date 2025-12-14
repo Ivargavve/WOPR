@@ -42,6 +42,8 @@ pub fn run() {
             activity_tracker::reset_activity_today,
             storage::load_pomodoro_settings,
             storage::save_pomodoro_settings,
+            storage::load_color_theme,
+            storage::save_color_theme,
         ])
         .setup(|app| {
             // Initialize storage directories and default config
