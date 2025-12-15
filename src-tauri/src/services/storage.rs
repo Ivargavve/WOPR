@@ -47,10 +47,18 @@ pub struct AppConfig {
     /// Whether screen time tracking is enabled
     #[serde(default = "default_screentime_enabled")]
     pub screentime_enabled: bool,
+
+    /// UI preset (preset1, preset2, etc.)
+    #[serde(default = "default_preset")]
+    pub preset: String,
 }
 
 fn default_screentime_enabled() -> bool {
     true
+}
+
+fn default_preset() -> String {
+    "preset1".to_string()
 }
 
 fn default_user_name() -> String {
@@ -97,6 +105,7 @@ impl Default for AppConfig {
             selected_monitor: None,      // Use primary/default monitor
             selected_microphone: None,   // Use system default microphone
             screentime_enabled: true,    // Enable screen time tracking by default
+            preset: "preset1".to_string(), // Default UI preset
         }
     }
 }
@@ -228,6 +237,7 @@ pub fn update_config_value(app: AppHandle, key: String, value: String) -> Result
         "always_on_top" => {
             config.always_on_top = value.parse().map_err(|_| "Invalid boolean")?
         }
+        "preset" => config.preset = value,
         _ => return Err(format!("Unknown config key: {}", key)),
     }
 

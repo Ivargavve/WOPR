@@ -1,6 +1,10 @@
 <script>
   import { onMount } from 'svelte';
-  import { RetroPanel, RetroButton, RetroToggle, RetroInput, RetroSelect } from '$lib/components';
+  import RetroPanel from './RetroPanel.svelte';
+  import RetroButton from './RetroButton.svelte';
+  import RetroToggle from './RetroToggle.svelte';
+  import RetroInput from './RetroInput.svelte';
+  import RetroSelect from './RetroSelect.svelte';
   import { getAvailableDisplays, setBorderlessFullscreen, setAlwaysOnTop } from '$lib/services/window.js';
   import { loadConfig, saveConfig, getDataPaths, changeDataFolder } from '$lib/services/storage.js';
   import { getAvailableScreens } from '$lib/services/capture.js';

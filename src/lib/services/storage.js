@@ -26,6 +26,7 @@ import { invoke } from '@tauri-apps/api/core';
  * @property {number|null} [selected_monitor] - Selected monitor index for capture
  * @property {string|null} [selected_microphone] - Selected microphone device ID
  * @property {boolean} [screentime_enabled] - Whether screen time tracking is enabled
+ * @property {string} [preset] - UI preset (preset1, preset2, etc.)
  */
 
 /**

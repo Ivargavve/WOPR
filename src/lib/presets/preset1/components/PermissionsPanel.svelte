@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
-  import { RetroPanel, RetroButton } from '$lib/components';
+  import RetroPanel from './RetroPanel.svelte';
+  import RetroButton from './RetroButton.svelte';
   import * as permissions from '$lib/services/permissions.js';
 
   /** @type {{show: boolean, onclose: () => void}} */

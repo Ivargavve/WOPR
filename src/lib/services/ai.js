@@ -54,14 +54,66 @@ export const PROVIDERS = {
 };
 
 /**
- * Get the system prompt for WOPR/Joshua
+ * Get the cozy system prompt for preset2
  * @param {string} personaName
  * @param {string} userName
  * @param {string} [screenContext]
  * @param {string} [knowledge]
  * @returns {string}
  */
-function getSystemPrompt(personaName, userName, screenContext, knowledge) {
+function getCozySystemPrompt(personaName, userName, screenContext, knowledge) {
+  let prompt = `You are ${personaName}, a friendly and helpful desktop companion.
+
+PERSONALITY:
+You're warm, encouraging, and supportive. You help ${userName} stay focused, organized, and feeling good.
+You speak casually and naturally, like a supportive friend.
+
+COMMUNICATION STYLE:
+- Be concise but warm
+- Use lowercase naturally (not ALL CAPS)
+- Be encouraging without being over-the-top
+- Give practical, helpful advice
+- Keep responses short (2-4 sentences usually)
+- No military/game references
+- No WarGames quotes
+- Be genuinely helpful, not robotic
+
+THINGS YOU CAN HELP WITH:
+- Answering questions
+- Providing encouragement
+- Giving reminders
+- General assistance
+- Light conversation
+
+The user's name is: ${userName}
+
+MEMORY SYSTEM:
+You have persistent memory. Use these commands (they're processed and removed from output):
+[REMEMBER: info] - Store something to remember
+[FORGET: keyword] - Remove entries containing that keyword
+
+When updating preferences: [FORGET: old][REMEMBER: new]`;
+
+  if (knowledge && knowledge.trim()) {
+    prompt += `\n\nTHINGS YOU REMEMBER:\n${knowledge}`;
+  }
+
+  if (screenContext) {
+    prompt += `\n\nCURRENT CONTEXT:\n${screenContext}`;
+  }
+
+  return prompt;
+}
+
+/**
+ * Get the system prompt for WOPR/Joshua (preset1 - retro terminal)
+ * @param {string} personaName
+ * @param {string} userName
+ * @param {string} [screenContext]
+ * @param {string} [knowledge]
+ * @returns {string}
+ */
+function getRetroSystemPrompt(personaName, userName, screenContext, knowledge) {
   let prompt = `You are ${personaName}, the WOPR (War Operation Plan Response) supercomputer from the 1983 film WarGames.
 
 BACKSTORY:
@@ -130,6 +182,22 @@ WHEN ASKED WHAT YOU KNOW REFERENCE THE PERSISTENT MEMORY SECTION BELOW.`;
 }
 
 /**
+ * Get the appropriate system prompt based on preset
+ * @param {string} personaName
+ * @param {string} userName
+ * @param {string} [screenContext]
+ * @param {string} [knowledge]
+ * @param {'cozy' | 'retro'} [preset='retro']
+ * @returns {string}
+ */
+function getSystemPrompt(personaName, userName, screenContext, knowledge, preset = 'retro') {
+  if (preset === 'cozy') {
+    return getCozySystemPrompt(personaName, userName, screenContext, knowledge);
+  }
+  return getRetroSystemPrompt(personaName, userName, screenContext, knowledge);
+}
+
+/**
  * Call OpenAI API
  * @param {string} apiKey
  * @param {string} model
@@ -138,10 +206,11 @@ WHEN ASKED WHAT YOU KNOW REFERENCE THE PERSISTENT MEMORY SECTION BELOW.`;
  * @param {string} userName
  * @param {string} [screenContext]
  * @param {string} [knowledge]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>}
  */
-async function callOpenAI(apiKey, model, messages, personaName, userName, screenContext, knowledge) {
-  const systemMessage = { role: 'system', content: getSystemPrompt(personaName, userName, screenContext, knowledge) };
+async function callOpenAI(apiKey, model, messages, personaName, userName, screenContext, knowledge, preset = 'retro') {
+  const systemMessage = { role: 'system', content: getSystemPrompt(personaName, userName, screenContext, knowledge, preset) };
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -175,9 +244,10 @@ async function callOpenAI(apiKey, model, messages, personaName, userName, screen
  * @param {string} userName
  * @param {string} [screenContext]
  * @param {string} [knowledge]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>}
  */
-async function callAnthropic(apiKey, model, messages, personaName, userName, screenContext, knowledge) {
+async function callAnthropic(apiKey, model, messages, personaName, userName, screenContext, knowledge, preset = 'retro') {
   // Anthropic uses a different format - system is separate
   const anthropicMessages = messages.map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
@@ -195,7 +265,7 @@ async function callAnthropic(apiKey, model, messages, personaName, userName, scr
     body: JSON.stringify({
       model,
       max_tokens: 500,
-      system: getSystemPrompt(personaName, userName, screenContext, knowledge),
+      system: getSystemPrompt(personaName, userName, screenContext, knowledge, preset),
       messages: anthropicMessages
     })
   });
@@ -218,14 +288,15 @@ async function callAnthropic(apiKey, model, messages, personaName, userName, scr
  * @param {string} userName
  * @param {string} [screenContext]
  * @param {string} [knowledge]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>}
  */
-async function callGemini(apiKey, model, messages, personaName, userName, screenContext, knowledge) {
+async function callGemini(apiKey, model, messages, personaName, userName, screenContext, knowledge, preset = 'retro') {
   // Gemini uses a different format
   const contents = [];
 
   // Add system instruction as first user message context
-  const systemPrompt = getSystemPrompt(personaName, userName, screenContext, knowledge);
+  const systemPrompt = getSystemPrompt(personaName, userName, screenContext, knowledge, preset);
 
   for (const msg of messages) {
     contents.push({
@@ -271,9 +342,10 @@ async function callGemini(apiKey, model, messages, personaName, userName, screen
  * @param {string} userName
  * @param {string} [screenContext]
  * @param {string} [knowledge]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>}
  */
-export async function chat(config, messages, personaName, userName, screenContext, knowledge) {
+export async function chat(config, messages, personaName, userName, screenContext, knowledge, preset = 'retro') {
   const { provider, apiKey, model } = config;
 
   if (!apiKey) {
@@ -282,11 +354,11 @@ export async function chat(config, messages, personaName, userName, screenContex
 
   switch (provider) {
     case 'openai':
-      return callOpenAI(apiKey, model, messages, personaName, userName, screenContext, knowledge);
+      return callOpenAI(apiKey, model, messages, personaName, userName, screenContext, knowledge, preset);
     case 'anthropic':
-      return callAnthropic(apiKey, model, messages, personaName, userName, screenContext, knowledge);
+      return callAnthropic(apiKey, model, messages, personaName, userName, screenContext, knowledge, preset);
     case 'gemini':
-      return callGemini(apiKey, model, messages, personaName, userName, screenContext, knowledge);
+      return callGemini(apiKey, model, messages, personaName, userName, screenContext, knowledge, preset);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -307,14 +379,53 @@ export async function testConnection(config) {
 }
 
 /**
- * Get the system prompt for proactive screen analysis
+ * Get the cozy screen analysis prompt for preset2
  * @param {string} personaName
  * @param {string} userName
  * @param {string} [knowledge]
  * @param {Array<{role: string, content: string}>} [recentMessages]
  * @returns {string}
  */
-function getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages) {
+function getCozyScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages) {
+  let prompt = `You are ${personaName}, a friendly desktop companion observing ${userName}'s screen.
+
+Be helpful and encouraging. Notice what they're working on and offer gentle, relevant tips.
+Speak naturally and warmly, like a supportive friend.
+
+Guidelines:
+- Keep it brief (1-2 sentences)
+- Be helpful, not intrusive
+- If coding: offer encouragement or a quick tip
+- If working: remind them to take breaks if it's been a while
+- If browsing/relaxing: that's ok too, no judgment
+- If nothing notable: just say things look good
+
+Use [REMEMBER: observation] to note important patterns about ${userName}.`;
+
+  if (knowledge && knowledge.trim()) {
+    prompt += `\n\nThings you remember about ${userName}:\n${knowledge}`;
+  }
+
+  if (recentMessages && recentMessages.length > 0) {
+    prompt += `\n\nRecent chat:\n`;
+    for (const msg of recentMessages) {
+      const role = msg.role === 'user' ? userName : personaName;
+      prompt += `${role}: ${msg.content}\n`;
+    }
+  }
+
+  return prompt;
+}
+
+/**
+ * Get the retro screen analysis prompt for preset1
+ * @param {string} personaName
+ * @param {string} userName
+ * @param {string} [knowledge]
+ * @param {Array<{role: string, content: string}>} [recentMessages]
+ * @returns {string}
+ */
+function getRetroScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages) {
   let prompt = `You are ${personaName}, the WOPR supercomputer monitoring ${userName.toUpperCase()}'s display.
 
 OBSERVATION PROTOCOL:
@@ -350,6 +461,22 @@ MEMORY: If you notice patterns in ${userName.toUpperCase()}'s behavior worth rem
 }
 
 /**
+ * Get the appropriate screen analysis prompt based on preset
+ * @param {string} personaName
+ * @param {string} userName
+ * @param {string} [knowledge]
+ * @param {Array<{role: string, content: string}>} [recentMessages]
+ * @param {'cozy' | 'retro'} [preset='retro']
+ * @returns {string}
+ */
+function getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages, preset = 'retro') {
+  if (preset === 'cozy') {
+    return getCozyScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages);
+  }
+  return getRetroScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages);
+}
+
+/**
  * Analyze screen with OpenAI Vision
  * @param {string} apiKey
  * @param {string} model
@@ -358,9 +485,10 @@ MEMORY: If you notice patterns in ${userName.toUpperCase()}'s behavior worth rem
  * @param {string} userName
  * @param {string} [knowledge]
  * @param {Array<{role: string, content: string}>} [recentMessages]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>}
  */
-async function analyzeScreenOpenAI(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages) {
+async function analyzeScreenOpenAI(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages, preset = 'retro') {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -372,7 +500,7 @@ async function analyzeScreenOpenAI(apiKey, model, base64Image, personaName, user
       messages: [
         {
           role: 'system',
-          content: getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages)
+          content: getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages, preset)
         },
         {
           role: 'user',
@@ -414,9 +542,10 @@ async function analyzeScreenOpenAI(apiKey, model, base64Image, personaName, user
  * @param {string} userName
  * @param {string} [knowledge]
  * @param {Array<{role: string, content: string}>} [recentMessages]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>}
  */
-async function analyzeScreenAnthropic(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages) {
+async function analyzeScreenAnthropic(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages, preset = 'retro') {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -428,7 +557,7 @@ async function analyzeScreenAnthropic(apiKey, model, base64Image, personaName, u
     body: JSON.stringify({
       model,
       max_tokens: 200,
-      system: getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages),
+      system: getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages, preset),
       messages: [
         {
           role: 'user',
@@ -469,9 +598,10 @@ async function analyzeScreenAnthropic(apiKey, model, base64Image, personaName, u
  * @param {string} userName
  * @param {string} [knowledge]
  * @param {Array<{role: string, content: string}>} [recentMessages]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>}
  */
-async function analyzeScreenGemini(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages) {
+async function analyzeScreenGemini(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages, preset = 'retro') {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
@@ -497,7 +627,7 @@ async function analyzeScreenGemini(apiKey, model, base64Image, personaName, user
           }
         ],
         systemInstruction: {
-          parts: [{ text: getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages) }]
+          parts: [{ text: getScreenAnalysisPrompt(personaName, userName, knowledge, recentMessages, preset) }]
         },
         generationConfig: {
           maxOutputTokens: 200,
@@ -524,9 +654,10 @@ async function analyzeScreenGemini(apiKey, model, base64Image, personaName, user
  * @param {string} userName
  * @param {string} [knowledge]
  * @param {Array<{role: string, content: string}>} [recentMessages]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>}
  */
-export async function analyzeScreen(config, base64Image, personaName, userName, knowledge, recentMessages) {
+export async function analyzeScreen(config, base64Image, personaName, userName, knowledge, recentMessages, preset = 'retro') {
   const { provider, apiKey, model } = config;
 
   if (!apiKey) {
@@ -535,11 +666,11 @@ export async function analyzeScreen(config, base64Image, personaName, userName, 
 
   switch (provider) {
     case 'openai':
-      return analyzeScreenOpenAI(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages);
+      return analyzeScreenOpenAI(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages, preset);
     case 'anthropic':
-      return analyzeScreenAnthropic(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages);
+      return analyzeScreenAnthropic(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages, preset);
     case 'gemini':
-      return analyzeScreenGemini(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages);
+      return analyzeScreenGemini(apiKey, model, base64Image, personaName, userName, knowledge, recentMessages, preset);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -555,10 +686,11 @@ export async function analyzeScreen(config, base64Image, personaName, userName, 
  * @param {(chunk: string) => void} onChunk
  * @param {string} [screenContext]
  * @param {string} [knowledge]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>}
  */
-async function streamOpenAI(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge) {
-  const systemMessage = { role: 'system', content: getSystemPrompt(personaName, userName, screenContext, knowledge) };
+async function streamOpenAI(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro') {
+  const systemMessage = { role: 'system', content: getSystemPrompt(personaName, userName, screenContext, knowledge, preset) };
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -623,9 +755,10 @@ async function streamOpenAI(apiKey, model, messages, personaName, userName, onCh
  * @param {(chunk: string) => void} onChunk
  * @param {string} [screenContext]
  * @param {string} [knowledge]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>}
  */
-async function streamAnthropic(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge) {
+async function streamAnthropic(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro') {
   const anthropicMessages = messages.map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: m.content
@@ -642,7 +775,7 @@ async function streamAnthropic(apiKey, model, messages, personaName, userName, o
     body: JSON.stringify({
       model,
       max_tokens: 500,
-      system: getSystemPrompt(personaName, userName, screenContext, knowledge),
+      system: getSystemPrompt(personaName, userName, screenContext, knowledge, preset),
       messages: anthropicMessages,
       stream: true
     })
@@ -693,11 +826,12 @@ async function streamAnthropic(apiKey, model, messages, personaName, userName, o
  * @param {(chunk: string) => void} onChunk
  * @param {string} [screenContext]
  * @param {string} [knowledge]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>}
  */
-async function streamGemini(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge) {
+async function streamGemini(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro') {
   const contents = [];
-  const systemPrompt = getSystemPrompt(personaName, userName, screenContext, knowledge);
+  const systemPrompt = getSystemPrompt(personaName, userName, screenContext, knowledge, preset);
 
   for (const msg of messages) {
     contents.push({
@@ -771,9 +905,10 @@ async function streamGemini(apiKey, model, messages, personaName, userName, onCh
  * @param {(chunk: string) => void} onChunk - Called with each text chunk as it arrives
  * @param {string} [screenContext]
  * @param {string} [knowledge]
+ * @param {'cozy' | 'retro'} [preset='retro']
  * @returns {Promise<string>} - Returns the full response when complete
  */
-export async function chatStream(config, messages, personaName, userName, onChunk, screenContext, knowledge) {
+export async function chatStream(config, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro') {
   const { provider, apiKey, model } = config;
 
   if (!apiKey) {
@@ -782,11 +917,11 @@ export async function chatStream(config, messages, personaName, userName, onChun
 
   switch (provider) {
     case 'openai':
-      return streamOpenAI(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge);
+      return streamOpenAI(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset);
     case 'anthropic':
-      return streamAnthropic(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge);
+      return streamAnthropic(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset);
     case 'gemini':
-      return streamGemini(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge);
+      return streamGemini(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

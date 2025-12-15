@@ -1,4 +1,4 @@
-// WOPR Retro UI Component Library
+// WOPR Preset 1 - Retro UI Component Library
 export { default as RetroPanel } from './RetroPanel.svelte';
 export { default as RetroButton } from './RetroButton.svelte';
 export { default as RetroToggle } from './RetroToggle.svelte';

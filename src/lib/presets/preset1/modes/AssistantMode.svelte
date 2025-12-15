@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { loadConfig } from '$lib/services/storage.js';
+  import { loadConfig, updateConfigValue } from '$lib/services/storage.js';
   import { chatStream, analyzeScreen } from '$lib/services/ai.js';
   import { captureScreen } from '$lib/services/capture.js';
   import { loadKnowledge, parseAndExecuteKnowledgeCommands, removeKnowledge } from '$lib/services/knowledge.js';
@@ -90,6 +90,7 @@
 /games /g        List games
 /defcon /d [1-5] Alert level
 /color /c [1-5]  Change color theme
+/preset /p [1-2] Change UI preset
 /quote /q        Random quote
 /whoami /w       User identity
 /memory /m       View memories
@@ -236,6 +237,26 @@ ${themeList}`
         return {
           handled: true,
           output: `__COLOR__${themeId}`
+        };
+      }
+
+      case '/preset':
+      case '/p': {
+        const presetNum = parseInt(args);
+        if (isNaN(presetNum) || presetNum < 1 || presetNum > 2) {
+          return {
+            handled: true,
+            output: `CURRENT PRESET: ${config?.preset?.toUpperCase() || 'PRESET1'}
+
+USAGE: /preset [1-2]
+  1 = RETRO CRT TERMINAL (DEFAULT)
+  2 = CUSTOM PRESET (PLACEHOLDER)`
+          };
+        }
+        // Return special marker for async handling
+        return {
+          handled: true,
+          output: `__PRESET__${presetNum}`
         };
       }
 
@@ -754,6 +775,37 @@ VISUAL PARAMETERS UPDATED.`,
           messages = [...messages, {
             role: 'system',
             content: 'ERROR: FAILED TO CHANGE COLOR THEME.',
+            timestamp: Date.now()
+          }];
+        }
+        return;
+      }
+
+      if (commandResult.output.startsWith('__PRESET__')) {
+        const presetNum = parseInt(commandResult.output.replace('__PRESET__', ''));
+        const presetName = `preset${presetNum}`;
+        try {
+          // Save preset to config
+          await updateConfigValue('preset', presetName);
+
+          messages = [...messages, {
+            role: 'assistant',
+            content: `UI PRESET CHANGED
+═══════════════════════════════════════
+NEW PRESET: ${presetName.toUpperCase()}
+
+SWITCHING INTERFACE...`,
+            timestamp: Date.now()
+          }];
+
+          // Reload page to apply new preset
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } catch (e) {
+          messages = [...messages, {
+            role: 'system',
+            content: 'ERROR: FAILED TO CHANGE UI PRESET.',
             timestamp: Date.now()
           }];
         }
