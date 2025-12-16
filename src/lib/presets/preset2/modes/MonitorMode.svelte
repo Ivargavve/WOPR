@@ -295,7 +295,7 @@
     height: 50px;
     bottom: 15px;
     left: -5px;
-    background-image: var(--cat-image-5, url('../assets/cats/c5.png'));
+    background-image: var(--cat-image-6, url('../assets/cats/c7.png'));
     transform: rotate(5deg);
   }
 
