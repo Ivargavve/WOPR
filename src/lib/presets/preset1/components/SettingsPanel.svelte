@@ -336,7 +336,7 @@
                 {migrationStatus}
               </div>
             {/if}
-            <p class="dim folder-hint">Data includes brain memory, captures, and logs</p>
+            <p class="dim folder-hint">Data includes brain memory and captures</p>
           </RetroPanel>
 
           <RetroPanel title="DISPLAY">

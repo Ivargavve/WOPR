@@ -34,10 +34,8 @@ import { invoke } from '@tauri-apps/api/core';
  * @property {string} data_folder - User data folder
  * @property {string} config_file - Config file path
  * @property {string} brain_dir - Brain storage directory
- * @property {string} plugins_dir - Plugins directory
  * @property {string} captures_dir - Screen captures directory
- * @property {string} logs_dir - Logs directory
- * @property {string} default_folder - Default data folder (Desktop/WOPR)
+ * @property {string} default_folder - Default data folder (~/WOPR)
  */
 
 /**

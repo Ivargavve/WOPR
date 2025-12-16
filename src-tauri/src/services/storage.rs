@@ -142,19 +142,9 @@ fn get_brain_dir(config: &AppConfig) -> PathBuf {
     get_data_folder(config).join("brain")
 }
 
-/// Get the plugins directory path (in user's data folder)
-fn get_plugins_dir(config: &AppConfig) -> PathBuf {
-    get_data_folder(config).join("plugins")
-}
-
 /// Get the captures directory path (in user's data folder)
 pub fn get_captures_dir(config: &AppConfig) -> PathBuf {
     get_data_folder(config).join("captures")
-}
-
-/// Get the logs directory path (in user's data folder)
-fn get_logs_dir(config: &AppConfig) -> PathBuf {
-    get_data_folder(config).join("logs")
 }
 
 /// Ensure internal app directory exists
@@ -169,9 +159,7 @@ pub fn ensure_data_directories(config: &AppConfig) -> Result<(), String> {
     let dirs = [
         get_data_folder(config),
         get_brain_dir(config),
-        get_plugins_dir(config),
         get_captures_dir(config),
-        get_logs_dir(config),
     ];
 
     for dir in dirs {
@@ -252,9 +240,7 @@ pub fn get_data_paths(app: AppHandle) -> Result<DataPaths, String> {
         data_folder: get_data_folder(&config).to_string_lossy().to_string(),
         config_file: get_config_path(&app).to_string_lossy().to_string(),
         brain_dir: get_brain_dir(&config).to_string_lossy().to_string(),
-        plugins_dir: get_plugins_dir(&config).to_string_lossy().to_string(),
         captures_dir: get_captures_dir(&config).to_string_lossy().to_string(),
-        logs_dir: get_logs_dir(&config).to_string_lossy().to_string(),
         default_folder: get_default_data_folder().to_string_lossy().to_string(),
     })
 }
@@ -264,9 +250,7 @@ pub struct DataPaths {
     pub data_folder: String,
     pub config_file: String,
     pub brain_dir: String,
-    pub plugins_dir: String,
     pub captures_dir: String,
-    pub logs_dir: String,
     pub default_folder: String,
 }
 

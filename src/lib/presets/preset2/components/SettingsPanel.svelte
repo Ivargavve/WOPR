@@ -362,7 +362,7 @@
             {#if migrationStatus}
               <div class="migration-status">{migrationStatus}</div>
             {/if}
-            <p class="hint">Stores memory, captures, and logs</p>
+            <p class="hint">Stores memory and captures</p>
           </div>
 
           <!-- Display Section -->
