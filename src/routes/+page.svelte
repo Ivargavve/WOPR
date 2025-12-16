@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { loadConfig } from '$lib/services/storage.js';
+  import { setMode, MODES } from '$lib/stores/mode.svelte.js';
 
   /** @type {import('svelte').ComponentType | null} */
   let ShellComponent = $state(null);
@@ -56,6 +57,36 @@
     return () => {
       window.removeEventListener('wopr-preset-change', handlePresetChange);
       console.log('Preset change listener removed');
+    };
+  });
+
+  // Keyboard shortcuts for mode switching (Cmd+1-4 on Mac, Ctrl+1-4 on Windows)
+  $effect(() => {
+    /** @param {KeyboardEvent} event */
+    const handleKeyDown = (event) => {
+      // Check for Cmd (Mac) or Ctrl (Windows/Linux)
+      const isMod = event.metaKey || event.ctrlKey;
+      if (!isMod) return;
+
+      // Map number keys to mode indices
+      const keyToIndex = {
+        '1': 0, // monitor
+        '2': 1, // screentime
+        '3': 2, // pomodoro
+        '4': 3  // assistant
+      };
+
+      const modeIndex = keyToIndex[event.key];
+      if (modeIndex !== undefined && MODES[modeIndex]) {
+        event.preventDefault();
+        setMode(MODES[modeIndex].id);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
     };
   });
 

@@ -291,10 +291,10 @@
   }
 
   .cat-monitor-2 {
-    width: 28px;
-    height: 28px;
-    bottom: 35px;
-    left: 10px;
+    width: 50px;
+    height: 50px;
+    bottom: 15px;
+    left: -5px;
     background-image: var(--cat-image-5, url('../assets/cats/c5.png'));
     transform: rotate(5deg);
   }

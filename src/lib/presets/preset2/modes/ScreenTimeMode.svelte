@@ -95,9 +95,8 @@
 </script>
 
 <div class="screentime-mode">
-  <!-- Decorative cats -->
+  <!-- Decorative cat -->
   <div class="deco-cat cat-screen-1"></div>
-  <div class="deco-cat cat-screen-2"></div>
 
   <!-- All-Time Summary -->
   <div class="alltime-bar">
@@ -240,15 +239,6 @@
     transform: rotate(10deg);
   }
 
-  .cat-screen-2 {
-    width: 26px;
-    height: 26px;
-    bottom: 30px;
-    right: 12px;
-    background-image: var(--cat-image-7, url('../assets/cats/c4.png'));
-    transform: rotate(-6deg);
-  }
-
   /* All-Time Bar */
   .alltime-bar {
     display: flex;
@@ -385,7 +375,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(240, 184, 192, 0.2);
+    background: transparent;
     border: none;
     border-radius: 8px;
     color: var(--cozy-text-light, #8b7d6b);
@@ -395,7 +385,6 @@
   }
 
   .reset-btn:hover {
-    background: rgba(240, 184, 192, 0.35);
     color: #8a6060;
   }
 

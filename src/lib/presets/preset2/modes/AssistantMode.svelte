@@ -481,7 +481,7 @@ Type /help to see what I can do!`
         }];
 
         if (onResponse) {
-          onResponse(cleanedResponse, 'Screen analysis');
+          onResponse(cleanedResponse, '');
         }
       }
 
