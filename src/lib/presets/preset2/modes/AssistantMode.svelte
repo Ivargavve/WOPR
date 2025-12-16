@@ -736,8 +736,7 @@ Type /help to see what I can do!`
 </script>
 
 <div class="terminal-mode">
-  <!-- Decorative cats -->
-  <div class="deco-cat cat-term-1"></div>
+  <!-- Decorative cat -->
   <div class="deco-cat cat-term-2"></div>
 
   <!-- Terminal output area -->
@@ -799,21 +798,12 @@ Type /help to see what I can do!`
     opacity: 0.3;
   }
 
-  .cat-term-1 {
-    width: 34px;
-    height: 34px;
-    top: 8px;
-    right: 10px;
-    background-image: var(--cat-image-5, url('../assets/cats/c5.png'));
-    transform: rotate(-10deg);
-  }
-
   .cat-term-2 {
     width: 28px;
     height: 28px;
     bottom: 60px;
     left: 8px;
-    background-image: var(--cat-image-6, url('../assets/cats/c7.png'));
+    background-image: var(--cat-image-8, url('../assets/cats/c8.png'));
     transform: rotate(8deg);
   }
 

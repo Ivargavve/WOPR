@@ -291,12 +291,12 @@
   }
 
   .cat-monitor-2 {
-    width: 50px;
-    height: 50px;
-    bottom: 15px;
-    left: -5px;
-    background-image: var(--cat-image-6, url('../assets/cats/c7.png'));
-    transform: rotate(5deg);
+    width: 22px;
+    height: 22px;
+    bottom: 8px;
+    right: 8px;
+    background-image: var(--cat-image-7, url('../assets/cats/c7.png'));
+    transform: rotate(-5deg);
   }
 
   .error-card {

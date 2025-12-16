@@ -5,7 +5,7 @@ import c1 from '$lib/presets/preset2/assets/cats/c1.png';
 import c2 from '$lib/presets/preset2/assets/cats/c2.png';
 import c3 from '$lib/presets/preset2/assets/cats/c3.png';
 import c4 from '$lib/presets/preset2/assets/cats/c4.png';
-import c5 from '$lib/presets/preset2/assets/cats/c5.png';
+import c6 from '$lib/presets/preset2/assets/cats/c6.png';
 import c7 from '$lib/presets/preset2/assets/cats/c7.png';
 import c8 from '$lib/presets/preset2/assets/cats/c8.png';
 import c9 from '$lib/presets/preset2/assets/cats/c9.png';
@@ -15,7 +15,7 @@ import c1w from '$lib/presets/preset2/assets/cats/c1w.png';
 import c2w from '$lib/presets/preset2/assets/cats/c2w.png';
 import c3w from '$lib/presets/preset2/assets/cats/c3w.png';
 import c4w from '$lib/presets/preset2/assets/cats/c4w.png';
-import c5w from '$lib/presets/preset2/assets/cats/c5w.png';
+import c6w from '$lib/presets/preset2/assets/cats/c6w.png';
 import c7w from '$lib/presets/preset2/assets/cats/c7w.png';
 import c8w from '$lib/presets/preset2/assets/cats/c8w.png';
 import c9w from '$lib/presets/preset2/assets/cats/c9w.png';
@@ -51,15 +51,15 @@ export const COZY_THEMES = [
     accent: '#e8a87c',
     cardBg: 'rgba(255, 255, 255, 0.55)',
     borderColor: 'rgba(180, 160, 140, 0.3)',
-    catImage1: `url('${c3}')`,
+    catImage1: `url('${c1}')`,
     catImage2: `url('${c2}')`,
-    catImage3: `url('${c10}')`,
-    catImage4: `url('${c1}')`,
-    catImage5: `url('${c5}')`,
-    catImage6: `url('${c7}')`,
-    catImage7: `url('${c4}')`,
+    catImage3: `url('${c3}')`,
+    catImage4: `url('${c4}')`,
+    catImage6: `url('${c6}')`,
+    catImage7: `url('${c7}')`,
     catImage8: `url('${c8}')`,
-    catImage9: `url('${c9}')`
+    catImage9: `url('${c9}')`,
+    catImage10: `url('${c10}')`
   },
   {
     id: 2,
@@ -73,15 +73,15 @@ export const COZY_THEMES = [
     accent: '#e8a87c',
     cardBg: 'rgba(255, 255, 255, 0.08)',
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    catImage1: `url('${c3w}')`,
+    catImage1: `url('${c1w}')`,
     catImage2: `url('${c2w}')`,
-    catImage3: `url('${c10w}')`,
-    catImage4: `url('${c1w}')`,
-    catImage5: `url('${c5w}')`,
-    catImage6: `url('${c7w}')`,
-    catImage7: `url('${c4w}')`,
+    catImage3: `url('${c3w}')`,
+    catImage4: `url('${c4w}')`,
+    catImage6: `url('${c6w}')`,
+    catImage7: `url('${c7w}')`,
     catImage8: `url('${c8w}')`,
-    catImage9: `url('${c9w}')`
+    catImage9: `url('${c9w}')`,
+    catImage10: `url('${c10w}')`
   }
 ];
 
@@ -136,11 +136,11 @@ function applyThemeToCSS(theme) {
   root.style.setProperty('--cat-image-2', theme.catImage2);
   root.style.setProperty('--cat-image-3', theme.catImage3);
   root.style.setProperty('--cat-image-4', theme.catImage4);
-  root.style.setProperty('--cat-image-5', theme.catImage5);
   root.style.setProperty('--cat-image-6', theme.catImage6);
   root.style.setProperty('--cat-image-7', theme.catImage7);
   root.style.setProperty('--cat-image-8', theme.catImage8);
   root.style.setProperty('--cat-image-9', theme.catImage9);
+  root.style.setProperty('--cat-image-10', theme.catImage10);
 }
 
 /**

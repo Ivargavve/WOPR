@@ -284,7 +284,6 @@
     {#if !fullscreenMode}
       <aside class="sidebar">
         <!-- Decorative cats -->
-        <div class="deco-cat cat-1"></div>
         <div class="deco-cat cat-2"></div>
         <div class="deco-cat cat-3"></div>
 
@@ -514,16 +513,6 @@
     transition: opacity 0.3s ease;
   }
 
-  /* Small cat bottom-left */
-  .cat-1 {
-    width: 22px;
-    height: 22px;
-    bottom: 2px;
-    left: 2px;
-    background-image: var(--cat-image-1, url('./assets/cats/c3.png'));
-    transform: rotate(5deg);
-  }
-
   /* Small cat top-left of clock */
   .cat-2 {
     width: 22px;
@@ -541,7 +530,7 @@
     height: 52px;
     bottom: 190px;
     right: 10px;
-    background-image: var(--cat-image-3, url('./assets/cats/c10.png'));
+    background-image: var(--cat-image-10, url('./assets/cats/c10.png'));
     transform: rotate(10deg);
     opacity: 0.55;
   }
