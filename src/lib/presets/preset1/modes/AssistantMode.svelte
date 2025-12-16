@@ -578,6 +578,12 @@ TYPE /help FOR AVAILABLE COMMANDS.`
     isAnalyzing = true;
 
     try {
+      // Reload config to get latest monitor selection
+      const latestConfig = await loadConfig();
+      if (latestConfig) {
+        selectedMonitor = latestConfig.selected_monitor ?? null;
+      }
+
       // Capture the screen
       const base64Image = await captureScreen(selectedMonitor);
       lastCaptureTime = Date.now();

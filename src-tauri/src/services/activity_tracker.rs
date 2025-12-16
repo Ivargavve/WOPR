@@ -120,9 +120,62 @@ fn get_active_app() -> Option<String> {
 
 #[cfg(target_os = "windows")]
 fn get_active_app() -> Option<String> {
-    // Windows implementation would use GetForegroundWindow + GetWindowText
-    // For now, return None - can be implemented later
-    None
+    use windows::Win32::Foundation::{CloseHandle, HANDLE, MAX_PATH};
+    use windows::Win32::System::ProcessStatus::GetModuleBaseNameW;
+    use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ};
+    use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
+
+    unsafe {
+        // Get the foreground window handle
+        let hwnd = GetForegroundWindow();
+        if hwnd.0.is_null() {
+            return None;
+        }
+
+        // Get the process ID from the window
+        let mut process_id: u32 = 0;
+        GetWindowThreadProcessId(hwnd, Some(&mut process_id));
+        if process_id == 0 {
+            return None;
+        }
+
+        // Open the process to query its name
+        let process_handle: HANDLE = match OpenProcess(
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            false,
+            process_id,
+        ) {
+            Ok(handle) => handle,
+            Err(_) => return None,
+        };
+
+        if process_handle.is_invalid() {
+            return None;
+        }
+
+        // Get the process executable name
+        let mut buffer = [0u16; MAX_PATH as usize];
+        let len = GetModuleBaseNameW(process_handle, None, &mut buffer);
+
+        // Clean up
+        let _ = CloseHandle(process_handle);
+
+        if len == 0 {
+            return None;
+        }
+
+        // Convert the wide string to a Rust string
+        let name = String::from_utf16_lossy(&buffer[..len as usize]);
+
+        // Remove .exe extension for cleaner display
+        let name = name.strip_suffix(".exe").unwrap_or(&name).to_string();
+
+        if name.is_empty() {
+            None
+        } else {
+            Some(name)
+        }
+    }
 }
 
 #[cfg(target_os = "linux")]
