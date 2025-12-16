@@ -476,3 +476,47 @@ pub fn save_color_theme(app: AppHandle, settings: ColorThemeSettings) -> Result<
     Ok(())
 }
 
+/// Cozy theme settings (for preset 2)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CozyThemeSettings {
+    pub theme_id: u32,
+}
+
+impl Default for CozyThemeSettings {
+    fn default() -> Self {
+        Self {
+            theme_id: 1, // Default to light theme
+        }
+    }
+}
+
+/// Load cozy theme settings
+#[tauri::command]
+pub fn load_cozy_theme(app: AppHandle) -> CozyThemeSettings {
+    let config = load_config(app);
+    let path = get_captures_dir(&config).join("cozy_theme.json");
+
+    if path.exists() {
+        if let Ok(content) = fs::read_to_string(&path) {
+            if let Ok(settings) = serde_json::from_str(&content) {
+                return settings;
+            }
+        }
+    }
+
+    CozyThemeSettings::default()
+}
+
+/// Save cozy theme settings
+#[tauri::command]
+pub fn save_cozy_theme(app: AppHandle, settings: CozyThemeSettings) -> Result<(), String> {
+    let config = load_config(app);
+    ensure_data_directories(&config)?;
+
+    let path = get_captures_dir(&config).join("cozy_theme.json");
+    let json = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    fs::write(&path, json).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+

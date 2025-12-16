@@ -214,16 +214,14 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div class="settings-panel" onclick={(e) => e.stopPropagation()} role="document">
       <div class="settings-header">
-        <img src="/cat/cat (2).png" alt="" class="header-icon" />
         <span class="header-title">Settings</span>
         <button class="close-btn" onclick={onclose}>
-          <img src="/cat/paw.png" alt="close" class="close-icon" />
+          <span class="close-icon">✕</span>
         </button>
       </div>
 
       {#if isLoading}
         <div class="loading">
-          <img src="/cat.png" alt="" class="loading-cat" />
           <span>Loading...</span>
         </div>
       {:else}
@@ -231,7 +229,6 @@
           <!-- AI Provider Section -->
           <div class="settings-section">
             <div class="section-header">
-              <img src="/cat/animal.png" alt="" class="section-icon" />
               <span class="section-title">AI Provider</span>
             </div>
             <div class="form-group">
@@ -265,7 +262,6 @@
                 onclick={handleTestConnection}
                 disabled={isTesting || !apiKey}
               >
-                <img src="/cat/paw.png" alt="" class="btn-icon" />
                 {isTesting ? 'Testing...' : 'Test'}
               </button>
               {#if testResult}
@@ -279,7 +275,6 @@
           <!-- Persona Section -->
           <div class="settings-section">
             <div class="section-header">
-              <img src="/cat/cat (1).png" alt="" class="section-icon" />
               <span class="section-title">Persona</span>
             </div>
             <div class="form-group">
@@ -314,7 +309,6 @@
           <!-- Screen Capture Section -->
           <div class="settings-section">
             <div class="section-header">
-              <img src="/cat/animal-shelter.png" alt="" class="section-icon" />
               <span class="section-title">Screen Capture</span>
             </div>
             <div class="form-group">
@@ -344,7 +338,6 @@
           <!-- Data Storage Section -->
           <div class="settings-section">
             <div class="section-header">
-              <img src="/cat/animal (1).png" alt="" class="section-icon" />
               <span class="section-title">Data Storage</span>
             </div>
             <div class="folder-display">
@@ -356,7 +349,6 @@
                 onclick={handlePickFolder}
                 disabled={isMigrating}
               >
-                <img src="/cat/paws.png" alt="" class="btn-icon" />
                 {isMigrating ? 'Working...' : 'Change'}
               </button>
               <button
@@ -364,7 +356,6 @@
                 onclick={handleResetFolder}
                 disabled={isMigrating || dataFolderPath === defaultFolderPath}
               >
-                <img src="/cat/paw.png" alt="" class="btn-icon" />
                 Reset
               </button>
             </div>
@@ -377,7 +368,6 @@
           <!-- Display Section -->
           <div class="settings-section">
             <div class="section-header">
-              <img src="/cat/animal (2).png" alt="" class="section-icon" />
               <span class="section-title">Display</span>
             </div>
             <div class="toggle-row">
@@ -389,11 +379,9 @@
             </div>
             <div class="display-buttons">
               <button class="btn btn-secondary" onclick={handleFullscreen}>
-                <img src="/cat/paw.png" alt="" class="btn-icon" />
                 Fullscreen
               </button>
               <button class="btn btn-secondary" onclick={handleWindowed}>
-                <img src="/cat/paw.png" alt="" class="btn-icon" />
                 Windowed
               </button>
             </div>
@@ -403,7 +391,6 @@
         <div class="settings-footer">
           <button class="btn btn-cancel" onclick={onclose}>Cancel</button>
           <button class="btn btn-primary" onclick={handleSave}>
-            <img src="/cat/paw.png" alt="" class="btn-icon" />
             Save
           </button>
         </div>
@@ -451,12 +438,6 @@
     background: rgba(255, 255, 255, 0.6);
   }
 
-  .header-icon {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
-  }
-
   .header-title {
     flex: 1;
     font-size: 1.1rem;
@@ -485,9 +466,8 @@
   }
 
   .close-icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
+    font-size: 1rem;
+    color: #8b7d6b;
   }
 
   .loading {
@@ -500,17 +480,6 @@
     color: #8b7d6b;
   }
 
-  .loading-cat {
-    width: 64px;
-    height: 64px;
-    object-fit: contain;
-    animation: bounce 1s ease-in-out infinite;
-  }
-
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
 
   .settings-content {
     flex: 1;
@@ -535,12 +504,6 @@
     margin-bottom: 0.75rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid rgba(200, 180, 160, 0.15);
-  }
-
-  .section-icon {
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
   }
 
   .section-title {
@@ -620,12 +583,6 @@
     transition: all 0.2s ease;
     min-height: 44px;
     border: none;
-  }
-
-  .btn-icon {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
   }
 
   .btn-primary {

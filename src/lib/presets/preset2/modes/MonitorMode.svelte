@@ -17,6 +17,8 @@
   let lastNetworkIn = $state(0);
   let lastNetworkOut = $state(0);
   let uptime = $state('0h 0m');
+  let cpuTemperature = $state(/** @type {number | null} */ (null));
+  let gpuTemperature = $state(/** @type {number | null} */ (null));
   let processes = $state(/** @type {Array<{ pid: number, name: string, cpu_usage: number, memory_mb: number, status: string }>} */ ([]));
   let error = $state(/** @type {string | null} */ (null));
 
@@ -60,6 +62,8 @@
       diskUsed = stats.disk_used;
       diskTotal = stats.disk_total;
       uptime = formatUptime(stats.uptime_seconds);
+      cpuTemperature = stats.cpu_temperature;
+      gpuTemperature = stats.gpu_temperature;
       processes = stats.processes;
 
       // Calculate network rate
@@ -85,139 +89,177 @@
     return () => clearInterval(interval);
   });
 
-  // Cozy color based on value
+  /**
+   * @param {number} value
+   * @returns {string}
+   */
   function getBarColor(value) {
     if (value > 85) return 'var(--bar-high)';
     if (value > 60) return 'var(--bar-medium)';
     return 'var(--bar-normal)';
   }
 
-  // Cat status image based on value
-  function getStatusImage(value) {
-    if (value > 85) return '/cat/animal (1).png'; // stressed cat
-    if (value > 60) return '/cat/animal.png'; // alert cat
-    return '/cat/cat (1).png'; // happy cat
+  /**
+   * @param {number} temp
+   * @param {boolean} [isGpu=false]
+   * @returns {string}
+   */
+  function getTempColor(temp, isGpu = false) {
+    const high = isGpu ? 80 : 70;
+    const warn = isGpu ? 65 : 55;
+    if (temp > high) return 'var(--bar-high)';
+    if (temp > warn) return 'var(--bar-medium)';
+    return 'var(--bar-normal)';
   }
 </script>
 
 <div class="monitor-mode">
+  <!-- Decorative cat -->
+  <div class="deco-cat cat-monitor-2"></div>
+
   {#if error}
     <div class="error-card">
-      <img src="/cat/black.png" alt="" class="card-icon" />
-      <span class="error-text">Something went wrong</span>
+      <span class="error-text">Unable to fetch system stats</span>
     </div>
   {/if}
 
-  <!-- Main Stats Grid -->
+  <!-- Main Stats -->
   <div class="stats-grid">
-    <!-- CPU Card -->
+    <!-- CPU -->
     <div class="stat-card">
       <div class="card-header">
-        <img src="/cat/animal.png" alt="" class="card-icon" />
-        <span class="card-title">Processor</span>
+        <span class="card-title">CPU</span>
         <span class="card-value">{Math.round(cpu)}%</span>
       </div>
       <div class="bar-container">
-        <div class="bar-fill" style="width: {cpu}%; background: {getBarColor(cpu)}"></div>
+        <div class="bar-fill orange" style="width: {cpu}%"></div>
       </div>
       <div class="card-footer">
-        <span class="footer-label">{cpuCount} cores</span>
-        <img src={getStatusImage(cpu)} alt="" class="footer-status-icon" />
+        <span class="footer-label">{cpuBrand || 'Processor'}</span>
+        <span class="footer-sub">{cpuCount} cores</span>
       </div>
     </div>
 
-    <!-- Memory Card -->
+    <!-- Memory -->
     <div class="stat-card">
       <div class="card-header">
-        <img src="/cat/animal (2).png" alt="" class="card-icon" />
         <span class="card-title">Memory</span>
         <span class="card-value">{Math.round(ram)}%</span>
       </div>
       <div class="bar-container">
-        <div class="bar-fill" style="width: {ram}%; background: {getBarColor(ram)}"></div>
+        <div class="bar-fill purple" style="width: {ram}%"></div>
       </div>
       <div class="card-footer">
         <span class="footer-label">{formatBytes(ramUsed)} / {formatBytes(ramTotal)}</span>
-        <img src={getStatusImage(ram)} alt="" class="footer-status-icon" />
       </div>
     </div>
 
-    <!-- Disk Card -->
+    <!-- Storage -->
     <div class="stat-card">
       <div class="card-header">
-        <img src="/cat/animal-shelter.png" alt="" class="card-icon" />
         <span class="card-title">Storage</span>
         <span class="card-value">{Math.round(disk)}%</span>
       </div>
       <div class="bar-container">
-        <div class="bar-fill" style="width: {disk}%; background: {getBarColor(disk)}"></div>
+        <div class="bar-fill orange" style="width: {disk}%"></div>
       </div>
       <div class="card-footer">
         <span class="footer-label">{formatBytes(diskUsed)} / {formatBytes(diskTotal)}</span>
-        <img src={getStatusImage(disk)} alt="" class="footer-status-icon" />
       </div>
     </div>
+
+    <!-- CPU Temp - if available -->
+    {#if cpuTemperature !== null}
+      <div class="stat-card small">
+        <div class="card-header">
+          <span class="card-title">CPU Temp</span>
+          <span class="card-value temp">{Math.round(cpuTemperature)}°C</span>
+        </div>
+        <div class="bar-container">
+          <div class="bar-fill" style="width: {cpuTemperature}%; background: {getTempColor(cpuTemperature)}"></div>
+        </div>
+        <div class="card-footer">
+          <span class="footer-label temp-status">{cpuTemperature > 70 ? 'Hot' : cpuTemperature > 55 ? 'Warm' : 'Normal'}</span>
+        </div>
+      </div>
+    {/if}
+
+    <!-- GPU Temp - if available -->
+    {#if gpuTemperature !== null}
+      <div class="stat-card small">
+        <div class="card-header">
+          <span class="card-title">GPU Temp</span>
+          <span class="card-value temp">{Math.round(gpuTemperature)}°C</span>
+        </div>
+        <div class="bar-container">
+          <div class="bar-fill" style="width: {gpuTemperature}%; background: {getTempColor(gpuTemperature, true)}"></div>
+        </div>
+        <div class="card-footer">
+          <span class="footer-label temp-status">{gpuTemperature > 80 ? 'Hot' : gpuTemperature > 65 ? 'Warm' : 'Normal'}</span>
+        </div>
+      </div>
+    {/if}
   </div>
 
   <!-- Info Row -->
   <div class="info-row">
     <div class="info-card">
-      <img src="/cat/paw.png" alt="" class="info-icon" />
-      <div class="info-content">
-        <span class="info-label">Uptime</span>
-        <span class="info-value">{uptime}</span>
-      </div>
+      <span class="info-label">Uptime</span>
+      <span class="info-value">{uptime}</span>
     </div>
     <div class="info-card">
-      <img src="/cat/paws.png" alt="" class="info-icon" />
-      <div class="info-content">
-        <span class="info-label">Down</span>
-        <span class="info-value">{formatBytes(network.in)}/s</span>
-      </div>
+      <span class="info-label">Network</span>
+      <span class="info-value">
+        <span class="net-arrow down">▼</span> {formatBytes(network.in)}/s
+        <span class="net-arrow up">▲</span> {formatBytes(network.out)}/s
+      </span>
     </div>
     <div class="info-card">
-      <img src="/cat/paws.png" alt="" class="info-icon flip" />
-      <div class="info-content">
-        <span class="info-label">Up</span>
-        <span class="info-value">{formatBytes(network.out)}/s</span>
-      </div>
+      <span class="info-label">Status</span>
+      <span class="info-value status">
+        <span class="status-dot" class:active={!error}></span>
+        {error ? 'Error' : 'Healthy'}
+      </span>
     </div>
   </div>
 
   <!-- Processes Section -->
   <div class="processes-card">
     <div class="processes-header">
-      <img src="/cat/cat (2).png" alt="" class="processes-icon" />
-      <span class="processes-title">Active Apps</span>
-      <span class="processes-count">{processes.length}</span>
+      <span class="col-pid">PID</span>
+      <span class="col-name">Process</span>
+      <span class="col-cpu">CPU</span>
+      <span class="col-mem">Memory</span>
     </div>
     <div class="processes-list">
-      {#each processes.slice(0, 6) as proc, i}
-        <div class="process-item" class:top={i === 0}>
-          <span class="process-name">{proc.name}</span>
-          <div class="process-bar-container">
-            <div
-              class="process-bar"
-              style="width: {Math.min(proc.cpu_usage, 100)}%"
-              class:high={proc.cpu_usage > 50}
-            ></div>
+      {#each processes as proc, i}
+        <div class="process-row" class:top={i === 0}>
+          <span class="col-pid">{proc.pid}</span>
+          <span class="col-name">{proc.name}</span>
+          <div class="col-cpu">
+            <div class="cpu-bar-container">
+              <div
+                class="cpu-bar"
+                class:warning={proc.cpu_usage > 50}
+                class:critical={proc.cpu_usage > 80}
+                style="width: {Math.min(proc.cpu_usage, 100)}%"
+              ></div>
+            </div>
+            <span class="cpu-value">{proc.cpu_usage.toFixed(1)}%</span>
           </div>
-          <span class="process-value">{proc.cpu_usage.toFixed(0)}%</span>
+          <span class="col-mem">{proc.memory_mb >= 1024 ? (proc.memory_mb / 1024).toFixed(1) + 'G' : proc.memory_mb.toFixed(0) + 'M'}</span>
         </div>
       {/each}
       {#if processes.length === 0}
-        <div class="no-processes">
-          <img src="/happy.png" alt="" class="no-processes-icon" />
-          <span>No active apps</span>
-        </div>
+        <div class="no-processes">No active processes</div>
       {/if}
     </div>
   </div>
 
-  <!-- Status Footer -->
-  <div class="status-footer">
-    <img src="/cat/paw.png" alt="" class="status-paw" />
-    <span class="status-text">System Healthy</span>
+  <!-- Footer -->
+  <div class="monitor-footer">
+    <span class="live-dot"></span>
+    <span>Live Monitoring</span>
   </div>
 </div>
 
@@ -231,286 +273,318 @@
     flex-direction: column;
     height: 100%;
     padding: 0.5rem;
-    gap: 0.75rem;
+    gap: 0.6rem;
     font-family: 'Quicksand', 'Nunito', system-ui, sans-serif;
     overflow: hidden;
+    position: relative;
+  }
+
+  /* Decorative cats */
+  .deco-cat {
+    position: absolute;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .cat-monitor-2 {
+    width: 28px;
+    height: 28px;
+    bottom: 35px;
+    left: 10px;
+    background-image: var(--cat-image-5, url('../assets/cats/c5.png'));
+    transform: rotate(5deg);
   }
 
   .error-card {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
     background: rgba(240, 184, 192, 0.2);
-    border-radius: 14px;
+    border-radius: 10px;
     border: 1px solid rgba(240, 184, 192, 0.3);
   }
 
   .error-text {
     color: #8a6060;
-    font-size: 0.9rem;
-  }
-
-  /* Icon styling */
-  .card-icon {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-  }
-
-  .info-icon {
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
-  }
-
-  .info-icon.flip {
-    transform: scaleY(-1);
-  }
-
-  .footer-status-icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-  }
-
-  .processes-icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
+    font-size: 0.8rem;
   }
 
   /* Stats Grid */
   .stats-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.5rem;
   }
 
   .stat-card {
-    background: rgba(255, 255, 255, 0.35);
+    background: var(--cozy-card, rgba(255, 255, 255, 0.35));
     border-radius: 12px;
-    padding: 0.85rem;
-    border: none;
+    padding: 0.7rem;
+  }
+
+  .stat-card.small {
+    padding: 0.5rem 0.7rem;
   }
 
   .card-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
   }
 
   .card-title {
-    flex: 1;
-    font-size: 0.95rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    color: #5a5048;
+    color: var(--cozy-text, #5a5048);
   }
 
   .card-value {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     font-weight: 700;
-    color: #4a4039;
+    color: var(--cozy-text, #4a4039);
+  }
+
+  .card-value.temp {
+    font-size: 1rem;
+    color: var(--cozy-accent, #e8a87c);
   }
 
   .bar-container {
-    height: 12px;
+    height: 10px;
     background: rgba(200, 180, 160, 0.15);
-    border-radius: 6px;
+    border-radius: 5px;
     overflow: hidden;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
   }
 
   .bar-fill {
     height: 100%;
-    border-radius: 6px;
-    transition: width 0.5s ease, background 0.3s ease;
+    border-radius: 5px;
+    transition: width 0.5s ease;
+  }
+
+  .bar-fill.orange {
+    background: linear-gradient(90deg, #f5d4bc, #e8a87c);
+  }
+
+  .bar-fill.purple {
+    background: linear-gradient(90deg, #d4d0e8, #b8a0d0);
   }
 
   .card-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .footer-label {
-    font-size: 0.8rem;
-    color: #8b7d6b;
-  }
-
-  /* Info Row */
-  .info-row {
-    display: flex;
-    gap: 0.75rem;
-  }
-
-  .info-card {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.6rem;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 10px;
-    border: none;
-  }
-
-  .info-content {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
   }
 
-  .info-label {
+  .footer-label {
     font-size: 0.7rem;
-    color: #a89b8a;
-    font-weight: 500;
+    color: var(--cozy-text-light, #8b7d6b);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .footer-sub {
+    font-size: 0.65rem;
+    color: var(--cozy-text-muted, #a89b8a);
+  }
+
+  /* Info Row */
+  .info-row {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.4rem 0;
+    border-top: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.2));
+    border-bottom: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.2));
+  }
+
+  .info-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.3rem;
+  }
+
+  .info-label {
+    font-size: 0.65rem;
+    color: var(--cozy-text-muted, #a89b8a);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .info-value {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    color: #5a5048;
+    color: var(--cozy-text, #5a5048);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
   }
 
-  /* Processes Card */
+  .info-value.status {
+    gap: 0.4rem;
+  }
+
+  .net-arrow {
+    font-size: 0.7rem;
+  }
+
+  .net-arrow.down {
+    color: var(--cozy-accent, #e8a87c);
+  }
+
+  .net-arrow.up {
+    color: #b8a0d0;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #e89090;
+  }
+
+  .status-dot.active {
+    background: #90c090;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* Processes */
   .processes-card {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--cozy-card, rgba(255, 255, 255, 0.3));
     border-radius: 12px;
-    border: none;
     overflow: hidden;
   }
 
   .processes-header {
-    display: flex;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 50px 1fr 120px 55px;
     gap: 0.5rem;
-    padding: 0.6rem 0.85rem;
-    border-bottom: 1px solid rgba(200, 180, 160, 0.1);
-  }
-
-  .processes-title {
-    flex: 1;
-    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.65rem;
     font-weight: 600;
-    color: #5a5048;
-  }
-
-  .processes-count {
-    font-size: 0.75rem;
-    color: #a89b8a;
-    background: rgba(200, 180, 160, 0.15);
-    padding: 0.2rem 0.6rem;
-    border-radius: 10px;
+    color: var(--cozy-text-muted, #a89b8a);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.2));
   }
 
   .processes-list {
     flex: 1;
     overflow-y: auto;
-    padding: 0.5rem;
+    padding: 0.25rem;
   }
 
-  .process-item {
-    display: flex;
+  .process-row {
+    display: grid;
+    grid-template-columns: 50px 1fr 120px 55px;
+    gap: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
+    color: var(--cozy-text, #5a5048);
+    border-radius: 8px;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 0.75rem;
-    border-radius: 10px;
-    margin-bottom: 0.35rem;
-    transition: background 0.2s ease;
   }
 
-  .process-item:hover {
-    background: rgba(212, 208, 232, 0.15);
+  .process-row:hover {
+    background: rgba(232, 168, 124, 0.08);
   }
 
-  .process-item.top {
-    background: rgba(232, 168, 124, 0.1);
+  .process-row.top {
+    background: rgba(232, 168, 124, 0.12);
   }
 
-  .process-name {
-    flex: 1;
-    font-size: 0.85rem;
-    color: #5a5048;
+  .col-pid {
+    font-size: 0.65rem;
+    color: var(--cozy-text-muted, #a89b8a);
+  }
+
+  .col-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    min-width: 0;
   }
 
-  .process-bar-container {
-    width: 80px;
+  .col-cpu {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .cpu-bar-container {
+    flex: 1;
     height: 8px;
     background: rgba(200, 180, 160, 0.15);
     border-radius: 4px;
     overflow: hidden;
   }
 
-  .process-bar {
+  .cpu-bar {
     height: 100%;
-    background: var(--bar-normal);
+    background: linear-gradient(90deg, #d4d0e8, #b8a0d0);
     border-radius: 4px;
     transition: width 0.3s ease;
   }
 
-  .process-bar.high {
-    background: var(--bar-medium);
+  .cpu-bar.warning {
+    background: linear-gradient(90deg, #f5d4bc, #e8a87c);
   }
 
-  .process-value {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #8b7d6b;
+  .cpu-bar.critical {
+    background: linear-gradient(90deg, #f0b8c0, #e89090);
+  }
+
+  .cpu-value {
+    font-size: 0.65rem;
+    color: var(--cozy-text-light, #8b7d6b);
     min-width: 35px;
     text-align: right;
   }
 
+  .col-mem {
+    font-size: 0.7rem;
+    color: var(--cozy-text-light, #8b7d6b);
+    text-align: right;
+  }
+
   .no-processes {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
     padding: 1.5rem;
-    color: #a89b8a;
-    font-size: 0.85rem;
+    text-align: center;
+    color: var(--cozy-text-muted, #a89b8a);
+    font-size: 0.8rem;
   }
 
-  .no-processes-icon {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
-    opacity: 0.6;
-  }
-
-  /* Status Footer */
-  .status-footer {
+  /* Footer */
+  .monitor-footer {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    gap: 0.4rem;
+    padding: 0.3rem;
+    font-size: 0.7rem;
+    color: var(--cozy-text-muted, #a89b8a);
   }
 
-  .status-paw {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-    animation: bounce 2s ease-in-out infinite;
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--cozy-accent, #e8a87c);
+    animation: pulse 1.5s ease-in-out infinite;
   }
 
-  .status-text {
-    font-size: 0.8rem;
-    color: #8b7d6b;
-    font-weight: 500;
-  }
-
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-3px); }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 </style>

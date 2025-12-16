@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "WOPR - Shall we play a game?",
+        "title": "WOPR",
         "width": 480,
         "height": 800,
         "resizable": true,

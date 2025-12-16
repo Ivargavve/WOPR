@@ -5,6 +5,20 @@
   /** @typedef {{ name: string, seconds: number, percent: number, last_seen: number }} AppUsage */
   /** @typedef {{ today: AppUsage[], all_time: AppUsage[], session_duration: number, total_today: number, current_app: string | null }} ActivityStats */
 
+  /**
+   * Format unix timestamp to short datetime
+   * @param {number} timestamp
+   */
+  function formatTime(timestamp) {
+    if (!timestamp) return '--:--';
+    const date = new Date(timestamp * 1000);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const mins = String(date.getMinutes()).padStart(2, '0');
+    return `${month}/${day} ${hours}:${mins}`;
+  }
+
   let stats = $state(/** @type {ActivityStats | null} */ (null));
 
   // Entertainment apps (browsers, games, media)
@@ -81,97 +95,116 @@
 </script>
 
 <div class="screentime-mode">
-  <!-- Today Summary Card -->
-  <div class="summary-card">
-    <div class="summary-header">
-      <img src="/cat/animal.png" alt="" class="summary-icon" />
-      <span class="summary-title">Today's Activity</span>
-      <button class="reset-btn" onclick={resetToday} title="Reset today">
-        <img src="/cat/paw.png" alt="reset" class="reset-icon" />
-      </button>
-    </div>
+  <!-- Decorative cats -->
+  <div class="deco-cat cat-screen-1"></div>
+  <div class="deco-cat cat-screen-2"></div>
 
-    <div class="summary-total">
-      <span class="total-value">{formatDuration(todayTotal)}</span>
-      <span class="total-label">total screen time</span>
-    </div>
-
-    <!-- Category Breakdown -->
-    <div class="category-bars">
-      <div class="category-bar">
-        <div class="bar-header">
-          <img src="/cat/animal (1).png" alt="" class="bar-icon" />
-          <span class="bar-label">Work</span>
-          <span class="bar-value">{workPercent}%</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill work" style="width: {workPercent}%"></div>
-        </div>
-      </div>
-      <div class="category-bar">
-        <div class="bar-header">
-          <img src="/cat/cat (1).png" alt="" class="bar-icon" />
-          <span class="bar-label">Play</span>
-          <span class="bar-value">{playPercent}%</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill play" style="width: {playPercent}%"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Top Apps Section -->
-  <div class="apps-section">
-    <div class="section-header">
-      <span class="section-title">Most Used Apps</span>
-    </div>
-
-    <div class="apps-list">
-      {#each (stats?.today ?? []).slice(0, 8) as app, i}
-        <div class="app-item" class:top={i === 0}>
-          <span class="app-rank">{i + 1}</span>
-          <span class="app-name">{app.name}</span>
-          <span class="app-time">{formatDuration(app.seconds)}</span>
-        </div>
-      {:else}
-        <div class="no-data">
-          <img src="/happy.png" alt="" class="no-data-icon" />
-          <span>No activity recorded yet</span>
-        </div>
-      {/each}
-    </div>
-  </div>
-
-  <!-- All-Time Stats -->
-  <div class="alltime-section">
-    <div class="section-header">
-      <img src="/cat/cat (2).png" alt="" class="section-icon" />
-      <span class="section-title">All-Time Stats</span>
-    </div>
-    <div class="alltime-grid">
-      <div class="alltime-stat">
-        <img src="/cat/paw.png" alt="" class="stat-icon" />
+  <!-- All-Time Summary -->
+  <div class="alltime-bar">
+    <div class="alltime-stats">
+      <div class="stat-block total">
         <span class="stat-value">{formatHours(allTimeTotal)}</span>
         <span class="stat-label">Total</span>
       </div>
-      <div class="alltime-stat">
-        <img src="/cat/animal (1).png" alt="" class="stat-icon" />
+      <div class="stat-block">
         <span class="stat-value">{formatHours(getCategorySeconds(allTimeCategories.work))}</span>
         <span class="stat-label">Work</span>
       </div>
-      <div class="alltime-stat">
-        <img src="/cat/cat (1).png" alt="" class="stat-icon" />
+      <div class="stat-block">
         <span class="stat-value">{formatHours(getCategorySeconds(allTimeCategories.play))}</span>
         <span class="stat-label">Play</span>
       </div>
     </div>
+    <div class="top-apps">
+      <span class="top-apps-label">Top Apps (All Time)</span>
+      <div class="top-apps-list">
+        {#each (stats?.all_time ?? []).slice(0, 5) as app, i}
+          <div class="top-app-row" class:first={i === 0}>
+            <span class="top-app-name">{app.name}</span>
+            <span class="top-app-time">{formatHours(app.seconds)}</span>
+            <span class="top-app-seen">{formatTime(app.last_seen)}</span>
+          </div>
+        {:else}
+          <span class="no-data">No data yet</span>
+        {/each}
+      </div>
+    </div>
   </div>
 
-  <!-- Status Footer -->
+  <!-- Today Header -->
+  <div class="today-header">
+    <span class="today-label">Today</span>
+    <span class="today-total">{formatDuration(todayTotal)}</span>
+    <button class="reset-btn" onclick={resetToday} title="Reset today">↺</button>
+  </div>
+
+  <!-- Category Bars -->
+  <div class="category-summary">
+    <div class="category-bar">
+      <div class="bar-info">
+        <span class="bar-label">Work</span>
+        <span class="bar-value">{workPercent}%</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill work" style="width: {workPercent}%"></div>
+      </div>
+    </div>
+    <div class="category-bar">
+      <div class="bar-info">
+        <span class="bar-label">Play</span>
+        <span class="bar-value">{playPercent}%</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill play" style="width: {playPercent}%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today Categories Grid -->
+  <div class="categories-grid">
+    <!-- Work Column -->
+    <div class="category-column">
+      <div class="column-header">
+        <span class="column-title">Work</span>
+        <span class="column-percent">{workPercent}%</span>
+      </div>
+      <div class="column-list">
+        {#each todayCategories.work.slice(0, 10) as app, i}
+          <div class="app-row" class:top={i === 0}>
+            <span class="app-name">{app.name}</span>
+            <span class="app-seen">{formatTime(app.last_seen)}</span>
+            <span class="app-time">{formatDuration(app.seconds)}</span>
+          </div>
+        {:else}
+          <div class="empty">No work apps yet</div>
+        {/each}
+      </div>
+    </div>
+
+    <!-- Play Column -->
+    <div class="category-column">
+      <div class="column-header">
+        <span class="column-title">Play</span>
+        <span class="column-percent">{playPercent}%</span>
+      </div>
+      <div class="column-list">
+        {#each todayCategories.play.slice(0, 10) as app, i}
+          <div class="app-row" class:top={i === 0}>
+            <span class="app-name">{app.name}</span>
+            <span class="app-seen">{formatTime(app.last_seen)}</span>
+            <span class="app-time">{formatDuration(app.seconds)}</span>
+          </div>
+        {:else}
+          <div class="empty">No play apps yet</div>
+        {/each}
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
   <div class="status-footer">
-    <img src="/cat/paw.png" alt="" class="status-paw" />
-    <span class="status-text">Tracking</span>
+    <span class="live-dot"></span>
+    <span>Live Tracking</span>
   </div>
 </div>
 
@@ -181,37 +214,169 @@
     flex-direction: column;
     height: 100%;
     padding: 0.5rem;
-    gap: 0.75rem;
+    gap: 0.5rem;
     font-family: 'Quicksand', 'Nunito', system-ui, sans-serif;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Decorative cats */
+  .deco-cat {
+    position: absolute;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .cat-screen-1 {
+    width: 28px;
+    height: 28px;
+    top: -2px;
+    left: -2px;
+    background-image: var(--cat-image-6, url('../assets/cats/c7.png'));
+    transform: rotate(10deg);
+  }
+
+  .cat-screen-2 {
+    width: 26px;
+    height: 26px;
+    bottom: 30px;
+    right: 12px;
+    background-image: var(--cat-image-7, url('../assets/cats/c4.png'));
+    transform: rotate(-6deg);
+  }
+
+  /* All-Time Bar */
+  .alltime-bar {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.6rem;
+    background: var(--cozy-card, rgba(255, 255, 255, 0.35));
+    border-radius: 12px;
+  }
+
+  .alltime-stats {
+    display: flex;
+    gap: 0.6rem;
+    padding-right: 0.75rem;
+    border-right: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.2));
+  }
+
+  .stat-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 40px;
+  }
+
+  .stat-block.total .stat-value {
+    font-size: 1.3rem;
+    color: var(--cozy-accent, #e8a87c);
+  }
+
+  .stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--cozy-text, #4a4039);
+  }
+
+  .stat-label {
+    font-size: 0.6rem;
+    color: var(--cozy-text-muted, #a89b8a);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.1rem;
+  }
+
+  .top-apps {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .top-apps-label {
+    font-size: 0.6rem;
+    color: var(--cozy-text-muted, #a89b8a);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .top-apps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
     overflow-y: auto;
+    max-height: 75px;
+    padding-right: 0.5rem;
   }
 
-  /* Summary Card */
-  .summary-card {
-    background: rgba(255, 255, 255, 0.35);
-    border-radius: 14px;
-    padding: 1rem;
-    border: none;
+  .top-app-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    color: var(--cozy-text-light, #8b7d6b);
+    padding: 0.15rem 0;
   }
 
-  .summary-header {
+  .top-app-row.first {
+    color: var(--cozy-text, #4a4039);
+  }
+
+  .top-app-row.first .top-app-name {
+    font-weight: 600;
+  }
+
+  .top-app-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .top-app-time {
+    min-width: 30px;
+    text-align: right;
+    font-weight: 500;
+  }
+
+  .top-app-seen {
+    font-size: 0.6rem;
+    color: var(--cozy-text-muted, #a89b8a);
+  }
+
+  .no-data {
+    font-size: 0.7rem;
+    color: var(--cozy-text-muted, #a89b8a);
+    font-style: italic;
+  }
+
+  /* Today Header */
+  .today-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    padding: 0.3rem 0;
   }
 
-  .summary-icon {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
+  .today-label {
+    font-size: 0.8rem;
+    color: var(--cozy-text-light, #8b7d6b);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
   }
 
-  .summary-title {
-    flex: 1;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #5a5048;
+  .today-total {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--cozy-text, #4a4039);
+    margin-left: auto;
   }
 
   .reset-btn {
@@ -222,91 +387,62 @@
     justify-content: center;
     background: rgba(240, 184, 192, 0.2);
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
+    color: var(--cozy-text-light, #8b7d6b);
+    font-size: 1rem;
     cursor: pointer;
     transition: all 0.2s ease;
-    /* Touch-friendly */
-    min-width: 44px;
-    min-height: 44px;
   }
 
   .reset-btn:hover {
-    background: rgba(240, 184, 192, 0.3);
+    background: rgba(240, 184, 192, 0.35);
+    color: #8a6060;
   }
 
-  .reset-icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-  }
-
-  .summary-total {
-    text-align: center;
-    margin-bottom: 1.25rem;
-  }
-
-  .total-value {
-    display: block;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #4a4039;
-    line-height: 1.2;
-  }
-
-  .total-label {
-    font-size: 0.85rem;
-    color: #a89b8a;
-    font-weight: 500;
-  }
-
-  /* Category Bars */
-  .category-bars {
+  /* Category Summary Bars */
+  .category-summary {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--cozy-card, rgba(255, 255, 255, 0.3));
+    border-radius: 10px;
   }
 
   .category-bar {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.25rem;
   }
 
-  .bar-header {
+  .bar-info {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 0.4rem;
-  }
-
-  .bar-icon {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
   }
 
   .bar-label {
-    flex: 1;
-    font-size: 0.85rem;
-    color: #5a5048;
+    font-size: 0.75rem;
+    color: var(--cozy-text, #5a5048);
     font-weight: 500;
   }
 
   .bar-value {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: #4a4039;
+    color: var(--cozy-text, #4a4039);
   }
 
   .bar-track {
-    height: 10px;
+    height: 8px;
     background: rgba(200, 180, 160, 0.15);
-    border-radius: 5px;
+    border-radius: 4px;
     overflow: hidden;
   }
 
   .bar-fill {
     height: 100%;
-    border-radius: 5px;
+    border-radius: 4px;
     transition: width 0.5s ease;
   }
 
@@ -318,182 +454,124 @@
     background: linear-gradient(90deg, #f5d4bc, #e8a87c);
   }
 
-  /* Apps Section */
-  .apps-section {
+  /* Categories Grid */
+  .categories-grid {
     flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    min-height: 0;
+  }
+
+  .category-column {
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--cozy-card, rgba(255, 255, 255, 0.3));
     border-radius: 12px;
-    border: none;
     overflow: hidden;
   }
 
-  .section-header {
-    padding: 0.6rem 0.85rem;
-    border-bottom: 1px solid rgba(200, 180, 160, 0.1);
+  .column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.65rem;
+    border-bottom: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.2));
   }
 
-  .section-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #5a5048;
+  .column-title {
+    font-size: 0.75rem;
+    color: var(--cozy-text-light, #8b7d6b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
-  .apps-list {
+  .column-percent {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--cozy-text, #4a4039);
+  }
+
+  .column-list {
     flex: 1;
     overflow-y: auto;
-    padding: 0.5rem;
+    padding: 0.3rem;
   }
 
-  .app-item {
+  .app-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 0.75rem;
-    border-radius: 10px;
-    margin-bottom: 0.35rem;
-    transition: background 0.2s ease;
+    gap: 0.3rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    margin-bottom: 0.2rem;
   }
 
-  .app-item:hover {
-    background: rgba(212, 208, 232, 0.15);
+  .app-row:hover {
+    background: rgba(232, 168, 124, 0.08);
   }
 
-  .app-item.top {
-    background: rgba(232, 168, 124, 0.1);
+  .app-row.top {
+    background: rgba(232, 168, 124, 0.12);
   }
 
-  .app-rank {
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(212, 208, 232, 0.3);
-    border-radius: 6px;
-    font-size: 0.75rem;
+  .app-row.top .app-name {
+    color: var(--cozy-text, #4a4039);
     font-weight: 600;
-    color: #8b7d6b;
-  }
-
-  .app-item.top .app-rank {
-    background: rgba(232, 168, 124, 0.3);
-    color: #8a6a50;
   }
 
   .app-name {
     flex: 1;
-    font-size: 0.85rem;
-    color: #5a5048;
+    color: var(--cozy-text-light, #8b7d6b);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 60px;
+  }
+
+  .app-seen {
+    font-size: 0.6rem;
+    color: var(--cozy-text-muted, #a89b8a);
   }
 
   .app-time {
-    font-size: 0.8rem;
     font-weight: 600;
-    color: #8b7d6b;
+    color: var(--cozy-text, #5a5048);
+    text-align: right;
+    min-width: 35px;
   }
 
-  .no-data {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    gap: 0.5rem;
-    color: #a89b8a;
+  .empty {
+    color: var(--cozy-text-muted, #a89b8a);
+    text-align: center;
+    padding: 1.5rem;
+    font-size: 0.75rem;
+    font-style: italic;
   }
 
-  .no-data-icon {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-    opacity: 0.7;
-  }
-
-  /* All-Time Section */
-  .alltime-section {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 12px;
-    border: none;
-    overflow: hidden;
-  }
-
-  .alltime-section .section-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(200, 180, 160, 0.15);
-  }
-
-  .section-icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-  }
-
-  .alltime-grid {
-    display: flex;
-    padding: 0.75rem;
-    gap: 0.75rem;
-  }
-
-  .alltime-stat {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.15rem;
-  }
-
-  .stat-icon {
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
-  }
-
-  .stat-value {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #4a4039;
-  }
-
-  .stat-label {
-    font-size: 0.7rem;
-    color: #a89b8a;
-    font-weight: 500;
-  }
-
-  /* Status Footer */
+  /* Footer */
   .status-footer {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    gap: 0.4rem;
+    padding: 0.3rem;
+    font-size: 0.7rem;
+    color: var(--cozy-text-muted, #a89b8a);
   }
 
-  .status-paw {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-    animation: bounce 2s ease-in-out infinite;
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--cozy-accent, #e8a87c);
+    animation: pulse 1.5s ease-in-out infinite;
   }
 
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-3px); }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
-
-  .status-text {
-    font-size: 0.8rem;
-    color: #8b7d6b;
-    font-weight: 500;
-  }
-
 </style>

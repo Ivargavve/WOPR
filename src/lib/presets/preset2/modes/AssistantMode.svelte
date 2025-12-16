@@ -6,6 +6,7 @@
   import { loadKnowledge, parseAndExecuteKnowledgeCommands, removeKnowledge } from '$lib/services/knowledge.js';
   import * as voice from '$lib/services/voice.js';
   import { checkMicrophonePermission, requestMicrophonePermission } from 'tauri-plugin-macos-permissions-api';
+  import { setCozyTheme, getCurrentCozyThemeId, COZY_THEMES } from '$lib/services/cozyTheme.js';
 
   /**
    * @typedef {Object} Message
@@ -53,7 +54,7 @@
   ];
 
   /**
-   * Handle terminal commands - /color is DISABLED in preset 2
+   * Handle terminal commands
    * @param {string} input - The user input
    * @returns {{ handled: boolean, output?: string }}
    */
@@ -82,6 +83,7 @@
 /memory - See my notes
 /forget [word] - Remove a note
 /scan - Take a quick look around
+/color 1-2 - Light or Dark mode
 /preset 1-2 - Change my appearance
 
 Just type normally to chat!`
@@ -144,14 +146,25 @@ Started at ${new Date(startTime).toLocaleTimeString()}`
       }
 
       case '/color':
-      case '/c':
-        // DISABLED in preset 2
+      case '/c': {
+        const colorNum = parseInt(args);
+        if (isNaN(colorNum) || colorNum < 1 || colorNum > 2) {
+          const currentId = getCurrentCozyThemeId();
+          const themeList = COZY_THEMES.map(t =>
+            `  ${t.id}. ${t.name}${t.id === currentId ? ' (current)' : ''}`
+          ).join('\n');
+          return {
+            handled: true,
+            output: `Color Themes:\n${themeList}\n\nUsage: /color <1-2>`
+          };
+        }
+        setCozyTheme(colorNum);
+        const theme = COZY_THEMES.find(t => t.id === colorNum);
         return {
           handled: true,
-          output: `Color themes are not available in Cozy mode.
-
-Use /preset 1 to switch to Retro mode for color themes.`
+          output: `Theme changed to: ${theme?.name || 'Unknown'}`
         };
+      }
 
       case '/preset':
       case '/p': {
@@ -721,6 +734,10 @@ Type /help to see what I can do!`
 </script>
 
 <div class="terminal-mode">
+  <!-- Decorative cats -->
+  <div class="deco-cat cat-term-1"></div>
+  <div class="deco-cat cat-term-2"></div>
+
   <!-- Terminal output area -->
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -766,6 +783,36 @@ Type /help to see what I can do!`
     height: 100%;
     overflow: hidden;
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    position: relative;
+  }
+
+  /* Decorative cats */
+  .deco-cat {
+    position: absolute;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.3;
+  }
+
+  .cat-term-1 {
+    width: 34px;
+    height: 34px;
+    top: 8px;
+    right: 10px;
+    background-image: var(--cat-image-5, url('../assets/cats/c5.png'));
+    transform: rotate(-10deg);
+  }
+
+  .cat-term-2 {
+    width: 28px;
+    height: 28px;
+    bottom: 60px;
+    left: 8px;
+    background-image: var(--cat-image-6, url('../assets/cats/c7.png'));
+    transform: rotate(8deg);
   }
 
   .terminal-output {
@@ -786,13 +833,13 @@ Type /help to see what I can do!`
   }
 
   .prompt {
-    color: #c4a882;
+    color: var(--cozy-text-light, #c4a882);
     font-weight: 500;
     flex-shrink: 0;
   }
 
   .user-prompt {
-    color: #d4956a;
+    color: var(--cozy-accent, #d4956a);
   }
 
   .line-content {
@@ -801,23 +848,23 @@ Type /help to see what I can do!`
   }
 
   .user-content {
-    color: #7a6a5a;
+    color: var(--cozy-text-light, #7a6a5a);
   }
 
   .assistant-content {
-    color: #5a5048;
+    color: var(--cozy-text, #5a5048);
     padding-left: 1rem;
   }
 
   .system-content {
-    color: #9a8a7a;
+    color: var(--cozy-text-muted, #9a8a7a);
     font-size: 0.85rem;
     font-style: italic;
   }
 
   .cursor {
     animation: blink 0.8s step-end infinite;
-    color: #d4956a;
+    color: var(--cozy-accent, #d4956a);
   }
 
   @keyframes blink {
@@ -831,14 +878,14 @@ Type /help to see what I can do!`
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.25rem;
-    background: rgba(255, 255, 255, 0.35);
+    background: var(--cozy-card, rgba(255, 255, 255, 0.35));
     border-top: none;
     border-radius: 10px;
     margin: 0 0.5rem 0.5rem;
   }
 
   .input-prompt {
-    color: #d4956a;
+    color: var(--cozy-accent, #d4956a);
     font-weight: 500;
     font-size: 0.9rem;
   }
@@ -850,7 +897,7 @@ Type /help to see what I can do!`
     font-size: 0.9rem;
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
     background: transparent;
-    color: #5a5048;
+    color: var(--cozy-text, #5a5048);
     outline: none;
     min-height: 44px;
   }
@@ -860,11 +907,11 @@ Type /help to see what I can do!`
   }
 
   .terminal-input:disabled {
-    color: #a89b8a;
+    color: var(--cozy-text-muted, #a89b8a);
   }
 
   .thinking-indicator {
-    color: #b8a090;
+    color: var(--cozy-text-muted, #b8a090);
     animation: pulse 1.5s ease-in-out infinite;
   }
 

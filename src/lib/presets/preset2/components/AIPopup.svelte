@@ -54,30 +54,32 @@
 {#if show}
   <div class="popup-overlay" onclick={handleDismiss}>
     <div class="popup-container" onclick={(e) => e.stopPropagation()}>
-      <div class="popup-border">
+      <div class="popup-card">
         <div class="popup-header">
-          <span class="popup-title">JOSHUA RESPONSE</span>
+          <span class="popup-icon">💭</span>
+          <span class="popup-title">Response</span>
         </div>
-        <div class="popup-divider"></div>
         <div class="popup-content">
           {#if question}
             <div class="popup-question">
-              <span class="label">Q:</span> "{question}"
+              "{question}"
             </div>
           {/if}
           <div class="popup-answer">
-            <span class="label">A:</span> {message}
+            {message}
           </div>
         </div>
-      </div>
-      {#if autoDismissSeconds > 0}
-        <div class="popup-countdown">
-          [ Dismissing in {countdown}s... ]
+        <div class="popup-footer">
+          {#if autoDismissSeconds > 0}
+            <div class="popup-countdown">
+              {countdown}s
+            </div>
+          {/if}
+          <button class="popup-dismiss" onclick={handleDismiss}>
+            Dismiss
+          </button>
         </div>
-      {/if}
-      <button class="popup-dismiss" onclick={handleDismiss}>
-        [ DISMISS ]
-      </button>
+      </div>
     </div>
   </div>
 {/if}
@@ -89,111 +91,165 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(74, 64, 57, 0.4);
+    backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     padding: 1rem;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   .popup-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.8rem;
-    max-width: 90%;
-    width: 100%;
+    max-width: 420px;
+    width: 90%;
+    animation: slideUp 0.3s ease;
   }
 
-  .popup-border {
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .popup-card {
     width: 100%;
-    border: 2px solid var(--text-primary);
-    background: var(--bg-primary);
+    background: rgba(252, 248, 242, 0.75);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
     box-shadow:
-      0 0 20px var(--text-primary-30),
-      inset 0 0 20px var(--text-primary-05);
+      0 20px 60px rgba(74, 64, 57, 0.2),
+      0 4px 16px rgba(74, 64, 57, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.5);
   }
 
   .popup-header {
-    padding: 0.6rem 1rem;
-    border-bottom: 1px solid var(--text-primary);
-    background: var(--text-primary-10);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.1rem 1.5rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.3) 100%);
+    border-bottom: 1px solid rgba(200, 180, 160, 0.15);
+  }
+
+  .popup-icon {
+    font-size: 1.4rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08));
   }
 
   .popup-title {
-    font-family: var(--font-mono);
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    text-shadow: 0 0 10px var(--text-primary);
-  }
-
-  .popup-divider {
-    height: 1px;
-    background: var(--text-primary);
-    opacity: 0.3;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--cozy-text, #4a4039);
+    letter-spacing: 0.02em;
   }
 
   .popup-content {
-    padding: 1rem;
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-height: 50vh;
+    overflow-y: auto;
   }
 
   .popup-question {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    color: var(--text-dim);
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.9rem;
+    color: var(--cozy-text-light, #8b7d6b);
     line-height: 1.5;
+    font-style: italic;
+    padding: 0.85rem 1.1rem;
+    background: linear-gradient(135deg, rgba(212, 208, 232, 0.25) 0%, rgba(184, 160, 208, 0.15) 100%);
+    border-radius: 14px;
+    border-left: 3px solid rgba(184, 160, 208, 0.6);
   }
 
   .popup-answer {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    line-height: 1.6;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1rem;
+    color: var(--cozy-text, #4a4039);
+    line-height: 1.75;
     white-space: pre-wrap;
   }
 
-  .label {
-    color: var(--text-primary);
-    font-weight: bold;
-    text-shadow: 0 0 8px var(--text-primary);
+  .popup-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.45) 100%);
+    border-top: 1px solid rgba(200, 180, 160, 0.15);
   }
 
   .popup-countdown {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    color: var(--text-dim);
-    text-align: center;
-    animation: pulse 1s ease-in-out infinite;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--cozy-text-muted, #a89b8a);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .popup-countdown::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cozy-accent, #e8a87c);
+    animation: pulse 1.2s ease-in-out infinite;
+    box-shadow: 0 0 8px rgba(232, 168, 124, 0.4);
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
   }
 
   .popup-dismiss {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    background: transparent;
-    border: 1px solid var(--border-color);
-    padding: 0.5rem 1.5rem;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: white;
+    background: linear-gradient(135deg, #e8a87c 0%, #d89668 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 0.7rem 1.75rem;
     cursor: pointer;
-    transition: all 0.15s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    transition: all 0.2s ease;
+    box-shadow:
+      0 4px 12px rgba(232, 168, 124, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    letter-spacing: 0.02em;
   }
 
   .popup-dismiss:hover {
-    color: var(--text-primary);
-    border-color: var(--text-primary);
-    text-shadow: 0 0 10px var(--text-primary);
-    box-shadow: 0 0 10px var(--text-primary-30);
+    transform: translateY(-2px);
+    box-shadow:
+      0 6px 20px rgba(232, 168, 124, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .popup-dismiss:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(232, 168, 124, 0.3);
   }
 </style>

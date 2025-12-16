@@ -5,12 +5,12 @@
   const currentMode = $derived(getCurrentMode());
   const currentModeInfo = $derived(MODES.find(m => m.id === currentMode));
 
-  // Friendly mode names with icons
+  // Friendly mode names
   const friendlyNames = {
-    assistant: { name: 'Chat', icon: '💬', desc: 'Talk with WOPR' },
-    monitor: { name: 'Health', icon: '💚', desc: 'System status' },
-    pomodoro: { name: 'Focus', icon: '🎯', desc: 'Stay productive' },
-    screentime: { name: 'Activity', icon: '📊', desc: 'Track time' }
+    assistant: { name: 'Chat', desc: 'Talk with WOPR' },
+    monitor: { name: 'Health', desc: 'System status' },
+    pomodoro: { name: 'Focus', desc: 'Stay productive' },
+    screentime: { name: 'Activity', desc: 'Track time' }
   };
 
   /** @param {string} modeId */
@@ -29,7 +29,7 @@
 
   /** @param {string} modeId */
   function getFriendlyInfo(modeId) {
-    return friendlyNames[modeId] || { name: modeId, icon: '📱', desc: '' };
+    return friendlyNames[modeId] || { name: modeId, desc: '' };
   }
 </script>
 
@@ -39,7 +39,6 @@
     onclick={() => isOpen = !isOpen}
     onkeydown={handleKeydown}
   >
-    <span class="mode-icon">{getFriendlyInfo(currentMode).icon}</span>
     <span class="mode-name">{getFriendlyInfo(currentMode).name}</span>
     <span class="dropdown-arrow" class:rotated={isOpen}>
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -57,7 +56,6 @@
           class:active={mode.id === currentMode}
           onclick={() => selectMode(mode.id)}
         >
-          <span class="option-icon">{info.icon}</span>
           <div class="option-info">
             <span class="option-name">{info.name}</span>
             <span class="option-desc">{info.desc}</span>
@@ -120,11 +118,6 @@
   .mode-selector.open .current-mode {
     border-radius: 14px 14px 0 0;
     border-bottom-color: transparent;
-  }
-
-  .mode-icon {
-    font-size: 1.1rem;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
   }
 
   .mode-name {
@@ -200,18 +193,6 @@
       rgba(232, 168, 124, 0.25) 0%,
       rgba(245, 212, 188, 0.3) 100%
     );
-  }
-
-  .option-icon {
-    font-size: 1.15rem;
-    width: 1.8rem;
-    height: 1.8rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.6);
-    border-radius: 10px;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08));
   }
 
   .option-info {

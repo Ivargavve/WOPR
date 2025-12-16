@@ -44,6 +44,8 @@ pub fn run() {
             storage::save_pomodoro_settings,
             storage::load_color_theme,
             storage::save_color_theme,
+            storage::load_cozy_theme,
+            storage::save_cozy_theme,
         ])
         .setup(|app| {
             // Initialize storage directories and default config
