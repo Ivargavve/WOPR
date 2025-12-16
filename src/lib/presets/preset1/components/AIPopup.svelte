@@ -55,29 +55,22 @@
   <div class="popup-overlay" onclick={handleDismiss}>
     <div class="popup-container" onclick={(e) => e.stopPropagation()}>
       <div class="popup-border">
-        <div class="popup-header">
-          <span class="popup-title">JOSHUA RESPONSE</span>
-        </div>
-        <div class="popup-divider"></div>
         <div class="popup-content">
-          {#if question}
-            <div class="popup-question">
-              <span class="label">Q:</span> "{question}"
-            </div>
-          {/if}
           <div class="popup-answer">
-            <span class="label">A:</span> {message}
+            {message}
           </div>
         </div>
       </div>
-      {#if autoDismissSeconds > 0}
-        <div class="popup-countdown">
-          [ Dismissing in {countdown}s... ]
-        </div>
-      {/if}
-      <button class="popup-dismiss" onclick={handleDismiss}>
-        [ DISMISS ]
-      </button>
+      <div class="popup-footer">
+        {#if autoDismissSeconds > 0}
+          <div class="popup-countdown">
+            [{countdown}s]
+          </div>
+        {/if}
+        <button class="popup-dismiss" onclick={handleDismiss}>
+          [ X ]
+        </button>
+      </div>
     </div>
   </div>
 {/if}
@@ -89,7 +82,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -101,53 +94,22 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.8rem;
-    max-width: 90%;
-    width: 100%;
+    gap: 0.5rem;
+    max-width: 400px;
+    width: 90%;
   }
 
   .popup-border {
     width: 100%;
-    border: 2px solid var(--text-primary);
+    border: 1px solid var(--text-primary);
     background: var(--bg-primary);
-    box-shadow:
-      0 0 20px var(--text-primary-30),
-      inset 0 0 20px var(--text-primary-05);
-  }
-
-  .popup-header {
-    padding: 0.6rem 1rem;
-    border-bottom: 1px solid var(--text-primary);
-    background: var(--text-primary-10);
-  }
-
-  .popup-title {
-    font-family: var(--font-mono);
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    text-shadow: 0 0 10px var(--text-primary);
-  }
-
-  .popup-divider {
-    height: 1px;
-    background: var(--text-primary);
-    opacity: 0.3;
+    box-shadow: 0 0 20px var(--text-primary-30);
   }
 
   .popup-content {
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .popup-question {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    color: var(--text-dim);
-    line-height: 1.5;
+    padding: 1rem 1.25rem;
+    max-height: 50vh;
+    overflow-y: auto;
   }
 
   .popup-answer {
@@ -158,23 +120,18 @@
     white-space: pre-wrap;
   }
 
-  .label {
-    color: var(--text-primary);
-    font-weight: bold;
-    text-shadow: 0 0 8px var(--text-primary);
+  .popup-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 0.25rem;
   }
 
   .popup-countdown {
     font-family: var(--font-mono);
     font-size: 0.7rem;
     color: var(--text-dim);
-    text-align: center;
-    animation: pulse 1s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
   }
 
   .popup-dismiss {
@@ -182,18 +139,14 @@
     font-size: 0.75rem;
     color: var(--text-dim);
     background: transparent;
-    border: 1px solid var(--border-color);
-    padding: 0.5rem 1.5rem;
+    border: none;
+    padding: 0.4rem 0.8rem;
     cursor: pointer;
     transition: all 0.15s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
   }
 
   .popup-dismiss:hover {
     color: var(--text-primary);
-    border-color: var(--text-primary);
     text-shadow: 0 0 10px var(--text-primary);
-    box-shadow: 0 0 10px var(--text-primary-30);
   }
 </style>

@@ -615,7 +615,7 @@ TYPE /help FOR AVAILABLE COMMANDS.`
 
         // Notify parent of the response (for popup when not on assistant tab)
         if (onResponse) {
-          onResponse(cleanedResponse, 'Screen analysis');
+          onResponse(cleanedResponse, '');
         }
       }
 
