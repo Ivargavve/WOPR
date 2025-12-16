@@ -644,12 +644,12 @@
     left: 50%;
     transform: translateX(-50%);
     min-width: 160px;
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--cozy-card, rgba(255, 255, 255, 0.55));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-radius: 8px;
-    border: 1px solid rgba(180, 160, 140, 0.3);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.3));
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     overflow: hidden;
     z-index: 50;
     padding: 0.3rem 0;
