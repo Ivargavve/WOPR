@@ -692,7 +692,8 @@ Type /help to see what I can do!`
         },
         undefined,
         knowledge || undefined,
-        'cozy'
+        'cozy',
+        config.web_search_enabled ?? false
       );
 
       const { cleanedResponse, actions } = await parseAndExecuteKnowledgeCommands(fullResponse);

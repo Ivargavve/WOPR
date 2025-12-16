@@ -31,6 +31,7 @@
   let captureInterval = $state(30);
   let wakeWord = $state('Joshua');
   let alwaysOnTop = $state(false);
+  let webSearchEnabled = $state(false);
   let dataFolderPath = $state('');
   let defaultFolderPath = $state('');
   /** @type {string} */
@@ -67,6 +68,7 @@
         captureInterval = Math.round((config.capture_interval_ms || 300000) / 1000);
         wakeWord = config.wake_word;
         alwaysOnTop = config.always_on_top;
+        webSearchEnabled = config.web_search_enabled ?? false;
         selectedMonitor = config.selected_monitor !== null && config.selected_monitor !== undefined
           ? String(config.selected_monitor) : 'default';
       }
@@ -104,6 +106,7 @@
       capture_interval_ms: captureInterval * 1000,
       wake_word: wakeWord,
       always_on_top: alwaysOnTop,
+      web_search_enabled: webSearchEnabled,
       selected_monitor: selectedMonitor === 'default' ? null : parseInt(selectedMonitor, 10)
     };
 
@@ -269,6 +272,13 @@
                   {testResult}
                 </span>
               {/if}
+            </div>
+            <div class="form-group toggle-group">
+              <label class="toggle-label">
+                <input type="checkbox" bind:checked={webSearchEnabled} />
+                <span class="toggle-text">Web Search</span>
+              </label>
+              <p class="hint">AI can search the web for current info (extra cost)</p>
             </div>
           </div>
 

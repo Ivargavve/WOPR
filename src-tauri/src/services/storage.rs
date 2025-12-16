@@ -51,6 +51,14 @@ pub struct AppConfig {
     /// UI preset (preset1, preset2, etc.)
     #[serde(default = "default_preset")]
     pub preset: String,
+
+    /// Whether AI web search is enabled
+    #[serde(default = "default_web_search_enabled")]
+    pub web_search_enabled: bool,
+}
+
+fn default_web_search_enabled() -> bool {
+    true
 }
 
 fn default_screentime_enabled() -> bool {
@@ -106,6 +114,7 @@ impl Default for AppConfig {
             selected_microphone: None,   // Use system default microphone
             screentime_enabled: true,    // Enable screen time tracking by default
             preset: "preset1".to_string(), // Default UI preset
+            web_search_enabled: true,     // Enable web search by default
         }
     }
 }

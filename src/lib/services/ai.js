@@ -27,10 +27,14 @@ export const PROVIDERS = {
     models: [
       { id: 'gpt-4o', name: 'GPT-4o (Latest)' },
       { id: 'gpt-4o-mini', name: 'GPT-4o Mini (Fast & Cheap)' },
+      { id: 'gpt-4o-search-preview', name: 'GPT-4o Search (Web Search)' },
+      { id: 'gpt-4o-mini-search-preview', name: 'GPT-4o Mini Search (Web Search)' },
       { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
       { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
     ],
-    defaultModel: 'gpt-4o-mini'
+    defaultModel: 'gpt-4o-mini',
+    // Models that have built-in web search
+    searchModels: ['gpt-4o-search-preview', 'gpt-4o-mini-search-preview']
   },
   anthropic: {
     name: 'Anthropic',
@@ -40,16 +44,20 @@ export const PROVIDERS = {
       { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku (Fast)' },
       { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' }
     ],
-    defaultModel: 'claude-sonnet-4-20250514'
+    defaultModel: 'claude-sonnet-4-20250514',
+    // Models that support web search tool
+    searchSupportedModels: ['claude-sonnet-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022']
   },
   gemini: {
     name: 'Google Gemini',
     models: [
+      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Latest)' },
       { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Fast)' },
-      { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro' }
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Fast)' }
     ],
-    defaultModel: 'gemini-1.5-flash'
+    defaultModel: 'gemini-2.0-flash',
+    // All current Gemini models support Google Search grounding
+    searchSupportedModels: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash']
   }
 };
 
@@ -693,10 +701,36 @@ export async function analyzeScreen(config, base64Image, personaName, userName, 
  * @param {string} [screenContext]
  * @param {string} [knowledge]
  * @param {'cozy' | 'retro'} [preset='retro']
+ * @param {boolean} [webSearchEnabled=false]
  * @returns {Promise<string>}
  */
-async function streamOpenAI(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro') {
+async function streamOpenAI(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro', webSearchEnabled = false) {
+  // For OpenAI, if web search is enabled and using a non-search model, switch to search model
+  let actualModel = model;
+  const isSearchModel = PROVIDERS.openai.searchModels.includes(model);
+  if (webSearchEnabled && !isSearchModel) {
+    // Use the mini search model for cost efficiency
+    actualModel = 'gpt-4o-mini-search-preview';
+  }
+
+  // Check if we're using a search model (either selected or auto-switched)
+  const usingSearchModel = PROVIDERS.openai.searchModels.includes(actualModel);
+
   const systemMessage = { role: 'system', content: getSystemPrompt(personaName, userName, screenContext, knowledge, preset) };
+
+  // Build request body - search models don't support temperature
+  /** @type {Record<string, unknown>} */
+  const requestBody = {
+    model: actualModel,
+    messages: [systemMessage, ...messages],
+    max_tokens: 1024,
+    stream: true
+  };
+
+  // Only add temperature for non-search models
+  if (!usingSearchModel) {
+    requestBody.temperature = 0.7;
+  }
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -704,13 +738,7 @@ async function streamOpenAI(apiKey, model, messages, personaName, userName, onCh
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`
     },
-    body: JSON.stringify({
-      model,
-      messages: [systemMessage, ...messages],
-      max_tokens: 500,
-      temperature: 0.7,
-      stream: true
-    })
+    body: JSON.stringify(requestBody)
   });
 
   if (!response.ok) {
@@ -762,13 +790,36 @@ async function streamOpenAI(apiKey, model, messages, personaName, userName, onCh
  * @param {string} [screenContext]
  * @param {string} [knowledge]
  * @param {'cozy' | 'retro'} [preset='retro']
+ * @param {boolean} [webSearchEnabled=false]
  * @returns {Promise<string>}
  */
-async function streamAnthropic(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro') {
+async function streamAnthropic(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro', webSearchEnabled = false) {
   const anthropicMessages = messages.map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: m.content
   }));
+
+  // Build request body
+  /** @type {Record<string, unknown>} */
+  const requestBody = {
+    model,
+    max_tokens: 1024,
+    system: getSystemPrompt(personaName, userName, screenContext, knowledge, preset),
+    messages: anthropicMessages,
+    stream: true
+  };
+
+  // Add web search tool if enabled and model supports it
+  const supportsSearch = PROVIDERS.anthropic.searchSupportedModels.includes(model);
+  if (webSearchEnabled && supportsSearch) {
+    requestBody.tools = [
+      {
+        type: 'web_search_20250305',
+        name: 'web_search',
+        max_uses: 3
+      }
+    ];
+  }
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -778,13 +829,7 @@ async function streamAnthropic(apiKey, model, messages, personaName, userName, o
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({
-      model,
-      max_tokens: 500,
-      system: getSystemPrompt(personaName, userName, screenContext, knowledge, preset),
-      messages: anthropicMessages,
-      stream: true
-    })
+    body: JSON.stringify(requestBody)
   });
 
   if (!response.ok) {
@@ -833,9 +878,10 @@ async function streamAnthropic(apiKey, model, messages, personaName, userName, o
  * @param {string} [screenContext]
  * @param {string} [knowledge]
  * @param {'cozy' | 'retro'} [preset='retro']
+ * @param {boolean} [webSearchEnabled=false]
  * @returns {Promise<string>}
  */
-async function streamGemini(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro') {
+async function streamGemini(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro', webSearchEnabled = false) {
   const contents = [];
   const systemPrompt = getSystemPrompt(personaName, userName, screenContext, knowledge, preset);
 
@@ -846,6 +892,29 @@ async function streamGemini(apiKey, model, messages, personaName, userName, onCh
     });
   }
 
+  // Build request body
+  /** @type {Record<string, unknown>} */
+  const requestBody = {
+    contents,
+    systemInstruction: {
+      parts: [{ text: systemPrompt }]
+    },
+    generationConfig: {
+      maxOutputTokens: 1024,
+      temperature: 0.7
+    }
+  };
+
+  // Add Google Search grounding if enabled
+  const supportsSearch = PROVIDERS.gemini.searchSupportedModels.includes(model);
+  if (webSearchEnabled && supportsSearch) {
+    requestBody.tools = [
+      {
+        google_search: {}
+      }
+    ];
+  }
+
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${apiKey}&alt=sse`,
     {
@@ -853,16 +922,7 @@ async function streamGemini(apiKey, model, messages, personaName, userName, onCh
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        contents,
-        systemInstruction: {
-          parts: [{ text: systemPrompt }]
-        },
-        generationConfig: {
-          maxOutputTokens: 500,
-          temperature: 0.7
-        }
-      })
+      body: JSON.stringify(requestBody)
     }
   );
 
@@ -912,9 +972,10 @@ async function streamGemini(apiKey, model, messages, personaName, userName, onCh
  * @param {string} [screenContext]
  * @param {string} [knowledge]
  * @param {'cozy' | 'retro'} [preset='retro']
+ * @param {boolean} [webSearchEnabled=false] - Enable web search capability
  * @returns {Promise<string>} - Returns the full response when complete
  */
-export async function chatStream(config, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro') {
+export async function chatStream(config, messages, personaName, userName, onChunk, screenContext, knowledge, preset = 'retro', webSearchEnabled = false) {
   const { provider, apiKey, model } = config;
 
   if (!apiKey) {
@@ -923,11 +984,11 @@ export async function chatStream(config, messages, personaName, userName, onChun
 
   switch (provider) {
     case 'openai':
-      return streamOpenAI(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset);
+      return streamOpenAI(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset, webSearchEnabled);
     case 'anthropic':
-      return streamAnthropic(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset);
+      return streamAnthropic(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset, webSearchEnabled);
     case 'gemini':
-      return streamGemini(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset);
+      return streamGemini(apiKey, model, messages, personaName, userName, onChunk, screenContext, knowledge, preset, webSearchEnabled);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

@@ -887,7 +887,9 @@ SWITCHING INTERFACE...`,
           );
         },
         undefined, // screenContext not needed for chat anymore
-        knowledge || undefined
+        knowledge || undefined,
+        'retro',
+        config.web_search_enabled ?? false
       );
 
       // Process knowledge commands from the response
