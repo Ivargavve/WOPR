@@ -2,14 +2,28 @@ mod services;
 
 use services::{activity_tracker, capture, permissions, storage, system_info, window};
 use tauri::Manager;
+use tauri_plugin_autostart::MacosLauncher;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .manage(system_info::SystemMonitor::new())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_macos_permissions::init())
+        .plugin(tauri_plugin_dialog::init());
+
+    // Add macOS-specific plugins
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.plugin(tauri_plugin_macos_permissions::init());
+    }
+
+    // Add autostart plugin (works on both macOS and Windows)
+    builder = builder.plugin(tauri_plugin_autostart::init(
+        MacosLauncher::LaunchAgent,
+        Some(vec!["--minimized"]),
+    ));
+
+    builder
         .invoke_handler(tauri::generate_handler![
             window::get_window_state,
             window::save_window_state,
@@ -46,6 +60,8 @@ pub fn run() {
             storage::save_color_theme,
             storage::load_cozy_theme,
             storage::save_cozy_theme,
+            storage::get_autostart_enabled,
+            storage::set_autostart_enabled,
         ])
         .setup(|app| {
             // Initialize storage directories and default config
@@ -57,6 +73,17 @@ pub fn run() {
             let config = storage::load_config(app.handle().clone());
             let captures_dir = storage::get_captures_dir(&config);
             app.manage(activity_tracker::ActivityTracker::new(captures_dir));
+
+            // Initialize autostart based on config (enable by default on first run)
+            {
+                use tauri_plugin_autostart::ManagerExt;
+                let autostart = app.autolaunch();
+                if config.launch_on_startup {
+                    if let Err(e) = autostart.enable() {
+                        eprintln!("Failed to enable autostart: {}", e);
+                    }
+                }
+            }
 
             // Restore window state on startup
             if let Some(window) = app.get_webview_window("main") {

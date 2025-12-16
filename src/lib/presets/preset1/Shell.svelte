@@ -354,6 +354,7 @@
               <br/><span class="cmd">/color 1-5</span> change theme
               <br/><span class="cmd">/quote</span> get a quote
               <br/><span class="cmd">/defcon 1-5</span> alert level
+              <br/><span class="cmd">⌘/Ctrl 1-4</span> switch modes
             </div>
           </div>
         </div>

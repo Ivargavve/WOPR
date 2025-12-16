@@ -6,7 +6,7 @@
   import RetroInput from './RetroInput.svelte';
   import RetroSelect from './RetroSelect.svelte';
   import { getAvailableDisplays, setBorderlessFullscreen, setAlwaysOnTop } from '$lib/services/window.js';
-  import { loadConfig, saveConfig, getDataPaths, changeDataFolder } from '$lib/services/storage.js';
+  import { loadConfig, saveConfig, getDataPaths, changeDataFolder, getAutostartEnabled, setAutostartEnabled } from '$lib/services/storage.js';
   import { getAvailableScreens } from '$lib/services/capture.js';
   import { PROVIDERS, testConnection } from '$lib/services/ai.js';
   import { open } from '@tauri-apps/plugin-dialog';
@@ -36,6 +36,7 @@
   let captureInterval = $state(30);
   let wakeWord = $state('Joshua');
   let alwaysOnTop = $state(false);
+  let autostart = $state(true);
   let webSearchEnabled = $state(false);
   let dataFolderPath = $state('');
   let defaultFolderPath = $state('');
@@ -73,6 +74,7 @@
         captureInterval = Math.round((config.capture_interval_ms || 300000) / 1000);
         wakeWord = config.wake_word;
         alwaysOnTop = config.always_on_top;
+        autostart = await getAutostartEnabled();
         webSearchEnabled = config.web_search_enabled ?? false;
         selectedMonitor = config.selected_monitor !== null && config.selected_monitor !== undefined
           ? String(config.selected_monitor) : 'default';
@@ -118,6 +120,7 @@
     try {
       await saveConfig(updatedConfig);
       await setAlwaysOnTop(alwaysOnTop);
+      await setAutostartEnabled(autostart);
       onclose();
     } catch (e) {
       console.error('Failed to save settings:', e);
@@ -351,6 +354,10 @@
 
           <RetroPanel title="DISPLAY">
             <div class="toggle-group">
+              <RetroToggle
+                label="Launch on Startup"
+                bind:checked={autostart}
+              />
               <RetroToggle
                 label="Always On Top"
                 bind:checked={alwaysOnTop}

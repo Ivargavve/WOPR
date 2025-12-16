@@ -110,3 +110,20 @@ export async function listBrainFiles() {
 export async function changeDataFolder(newPath, migrate = true) {
   return await invoke('change_data_folder', { newPath, migrate });
 }
+
+/**
+ * Get autostart enabled status
+ * @returns {Promise<boolean>}
+ */
+export async function getAutostartEnabled() {
+  return await invoke('get_autostart_enabled');
+}
+
+/**
+ * Set autostart enabled status
+ * @param {boolean} enabled - Whether to enable autostart
+ * @returns {Promise<void>}
+ */
+export async function setAutostartEnabled(enabled) {
+  return await invoke('set_autostart_enabled', { enabled });
+}

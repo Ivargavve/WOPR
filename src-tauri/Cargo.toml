@@ -42,6 +42,9 @@ dirs = "5"
 tauri-plugin-dialog = "2"
 tauri-plugin-macos-permissions = "2.3.0"
 
+# Autostart plugin
+tauri-plugin-autostart = "2"
+
 # macOS permissions
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2"

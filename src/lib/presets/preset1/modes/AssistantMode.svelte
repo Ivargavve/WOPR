@@ -97,6 +97,9 @@
 /forget /f [x]   Forget memory
 /scan            Screen analysis
 
+KEYBOARD SHORTCUTS
+⌘/Ctrl + 1-4     Switch modes
+
 SHALL WE PLAY A GAME?`
         };
 

@@ -87,6 +87,8 @@
 /preset, /p 1-2 - Change my appearance
 /version, /v - Version info
 
+Keyboard: ⌘/Ctrl + 1-4 to switch modes
+
 Just type normally to chat!`
         };
 

@@ -376,6 +376,7 @@
               Type <span class="cmd">/help</span> for commands
               <br/><span class="cmd">/color 1-2</span> light/dark
               <br/><span class="cmd">/quote</span> get a quote
+              <br/><span class="cmd">⌘/Ctrl 1-4</span> switch modes
             </div>
           </div>
         </div>

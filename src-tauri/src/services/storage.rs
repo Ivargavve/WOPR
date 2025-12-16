@@ -513,3 +513,30 @@ pub fn save_cozy_theme(app: AppHandle, settings: CozyThemeSettings) -> Result<()
     Ok(())
 }
 
+/// Get autostart status
+#[tauri::command]
+pub fn get_autostart_enabled(app: AppHandle) -> bool {
+    use tauri_plugin_autostart::ManagerExt;
+    app.autolaunch().is_enabled().unwrap_or(false)
+}
+
+/// Set autostart status
+#[tauri::command]
+pub fn set_autostart_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+    use tauri_plugin_autostart::ManagerExt;
+    let autostart = app.autolaunch();
+
+    if enabled {
+        autostart.enable().map_err(|e| e.to_string())?;
+    } else {
+        autostart.disable().map_err(|e| e.to_string())?;
+    }
+
+    // Also update config
+    let mut config = load_config(app.clone());
+    config.launch_on_startup = enabled;
+    save_config(app, config)?;
+
+    Ok(())
+}
+
