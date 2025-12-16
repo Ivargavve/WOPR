@@ -34,7 +34,7 @@
   let personaName = $state('Joshua');
   let userName = $state('Falken');
   let wakeWord = $state('Joshua');
-  let captureIntervalMs = $state(30000);
+  let captureIntervalMs = $state(300000); // 5 minutes
   /** @type {number | null} */
   let selectedMonitor = $state(null);
   let knowledge = $state('');
@@ -520,7 +520,7 @@ TYPE /help FOR AVAILABLE COMMANDS.`
         personaName = config.persona_name || 'Joshua';
         userName = config.user_name || 'Falken';
         wakeWord = config.wake_word || 'Joshua';
-        captureIntervalMs = config.capture_interval_ms || 30000;
+        captureIntervalMs = config.capture_interval_ms || 300000;
         selectedMonitor = config.selected_monitor ?? null;
       }
     } catch (e) {

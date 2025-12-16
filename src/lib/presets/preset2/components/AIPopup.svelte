@@ -128,15 +128,14 @@
 
   .popup-card {
     width: 100%;
-    background: rgba(252, 248, 242, 0.75);
+    background: var(--cozy-bg, #e8ddd4);
     backdrop-filter: blur(20px);
     border-radius: 24px;
     box-shadow:
       0 20px 60px rgba(74, 64, 57, 0.2),
-      0 4px 16px rgba(74, 64, 57, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      0 4px 16px rgba(74, 64, 57, 0.1);
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.3));
   }
 
   .popup-header {
@@ -144,8 +143,8 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1.1rem 1.5rem;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.3) 100%);
-    border-bottom: 1px solid rgba(200, 180, 160, 0.15);
+    background: var(--cozy-card, rgba(255, 255, 255, 0.55));
+    border-bottom: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.15));
   }
 
   .popup-icon {
@@ -195,8 +194,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.5rem;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.45) 100%);
-    border-top: 1px solid rgba(200, 180, 160, 0.15);
+    background: var(--cozy-card, rgba(255, 255, 255, 0.55));
+    border-top: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.15));
   }
 
   .popup-countdown {

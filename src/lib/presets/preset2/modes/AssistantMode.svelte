@@ -34,7 +34,7 @@
   let personaName = $state('Buddy');
   let userName = $state('Friend');
   let wakeWord = $state('Buddy');
-  let captureIntervalMs = $state(30000);
+  let captureIntervalMs = $state(300000); // 5 minutes
   /** @type {number | null} */
   let selectedMonitor = $state(null);
   let knowledge = $state('');
@@ -77,14 +77,15 @@
           handled: true,
           output: `Hi there! Here's what I can do:
 
-/clear - Fresh start
-/status - Check how things are going
-/quote - Get a little inspiration
-/memory - See my notes
-/forget [word] - Remove a note
+/clear, /cls - Fresh start
+/status, /s - Check how things are going
+/quote, /q - Get a little inspiration
+/memory, /m - See my notes
+/forget, /f [word] - Remove a note
 /scan - Take a quick look around
-/color 1-2 - Light or Dark mode
-/preset 1-2 - Change my appearance
+/color, /c 1-2 - Light or Dark mode
+/preset, /p 1-2 - Change my appearance
+/version, /v - Version info
 
 Just type normally to chat!`
         };
@@ -405,7 +406,7 @@ Type /help to see what I can do!`
         personaName = config.persona_name || 'Buddy';
         userName = config.user_name || 'Friend';
         wakeWord = config.wake_word || 'Buddy';
-        captureIntervalMs = config.capture_interval_ms || 30000;
+        captureIntervalMs = config.capture_interval_ms || 300000;
         selectedMonitor = config.selected_monitor ?? null;
       }
     } catch (e) {

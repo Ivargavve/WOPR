@@ -4,8 +4,9 @@
 
   /** @type {import('svelte').ComponentType | null} */
   let ShellComponent = $state(null);
-  let currentPreset = $state('preset1');
+  let currentPreset = $state('');
   let isLoading = $state(true);
+  let configLoaded = $state(false);
   let componentKey = $state(0); // Force re-render key
 
   /**
@@ -59,14 +60,17 @@
   });
 
   onMount(async () => {
-    // Load config to get the saved preset
+    // Load config first to get the saved preset (for loading screen styling)
     try {
       const config = await loadConfig();
-      const preset = config.preset || 'preset1';
-      await loadPreset(preset);
+      currentPreset = config.preset || 'preset1';
+      configLoaded = true;
+      await loadPreset(currentPreset);
     } catch (e) {
       console.error('Failed to load config:', e);
       // Fallback to preset1
+      currentPreset = 'preset1';
+      configLoaded = true;
       await loadPreset('preset1');
     }
     isLoading = false;
@@ -74,8 +78,12 @@
 </script>
 
 {#if isLoading}
-  <div class="loading-screen">
-    <div class="loading-text">INITIALIZING WOPR...</div>
+  <div class="loading-screen" class:cozy={currentPreset === 'preset2'} class:initial={!configLoaded}>
+    {#if configLoaded}
+      <div class="loading-text">
+        {currentPreset === 'preset2' ? 'Loading...' : 'INITIALIZING WOPR...'}
+      </div>
+    {/if}
   </div>
 {:else if ShellComponent}
   {#key componentKey}
@@ -110,6 +118,24 @@
 
   .error-text {
     color: #ff4444;
+  }
+
+  /* Initial loading (before config loads) - neutral dark */
+  .loading-screen.initial {
+    background: #1a1a1a;
+  }
+
+  /* Cozy preset loading screen */
+  .loading-screen.cozy {
+    background: #e8ddd4;
+  }
+
+  .loading-screen.cozy .loading-text {
+    color: #8b7d6b;
+    font-family: 'Quicksand', 'Nunito', system-ui, sans-serif;
+    text-transform: none;
+    letter-spacing: 0.05em;
+    font-weight: 500;
   }
 
   @keyframes pulse {

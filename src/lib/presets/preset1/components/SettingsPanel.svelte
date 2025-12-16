@@ -69,7 +69,7 @@
         aiProvider = /** @type {'openai' | 'anthropic' | 'gemini'} */ (config.ai_provider || 'openai');
         apiKey = config.api_key || '';
         aiModel = config.ai_model || 'gpt-4o-mini';
-        captureInterval = Math.round((config.capture_interval_ms || 30000) / 1000);
+        captureInterval = Math.round((config.capture_interval_ms || 300000) / 1000);
         wakeWord = config.wake_word;
         alwaysOnTop = config.always_on_top;
         selectedMonitor = config.selected_monitor !== null && config.selected_monitor !== undefined

@@ -352,7 +352,7 @@
             <div class="tips-content">
               Type <span class="cmd">/help</span> for commands
               <br/><span class="cmd">/color 1-5</span> change theme
-              <br/><span class="cmd">/preset 1-2</span> change UI
+              <br/><span class="cmd">/quote</span> get a quote
               <br/><span class="cmd">/defcon 1-5</span> alert level
             </div>
           </div>

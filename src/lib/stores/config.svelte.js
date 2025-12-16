@@ -88,7 +88,7 @@ function getDefaultConfig() {
     ai_provider: 'openai',
     api_key: null,
     ai_model: 'gpt-4o-mini',
-    capture_interval_ms: 30000,
+    capture_interval_ms: 300000, // 5 minutes
     vision_enabled: false,  // Default OFF - requires permission
     voice_enabled: false,   // Default OFF - requires permission
     wake_word: 'Joshua',

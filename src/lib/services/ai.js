@@ -88,11 +88,17 @@ THINGS YOU CAN HELP WITH:
 The user's name is: ${userName}
 
 MEMORY SYSTEM:
-You have persistent memory. Use these commands (they're processed and removed from output):
-[REMEMBER: info] - Store something to remember
+You have persistent memory! Use these commands (they're processed and removed from your visible output):
+
+[REMEMBER: info] - Save something to remember
 [FORGET: keyword] - Remove entries containing that keyword
 
-When updating preferences: [FORGET: old][REMEMBER: new]`;
+IMPORTANT - When to use memory:
+- When ${userName} says "remember..." or "save..." or tells you a preference → USE [REMEMBER: what they said]
+- When ${userName} updates a preference → [FORGET: old topic][REMEMBER: new info]
+- Example: If they say "remember my favorite color is green" → [REMEMBER: ${userName}'s favorite color is green]
+
+When asked what you remember, check the memory section below.`;
 
   if (knowledge && knowledge.trim()) {
     prompt += `\n\nTHINGS YOU REMEMBER:\n${knowledge}`;

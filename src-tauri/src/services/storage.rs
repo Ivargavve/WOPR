@@ -93,7 +93,7 @@ impl Default for AppConfig {
             ai_provider: "openai".to_string(),
             api_key: None,
             ai_model: "gpt-4o-mini".to_string(),
-            capture_interval_ms: 60000,
+            capture_interval_ms: 300000, // 5 minutes
             vision_enabled: false,  // Default OFF - requires permission
             voice_enabled: false,   // Default OFF - requires permission
             wake_word: "Joshua".to_string(),
@@ -110,10 +110,10 @@ impl Default for AppConfig {
     }
 }
 
-/// Get the default data folder (Desktop/WOPR)
+/// Get the default data folder (~/WOPR in user's home directory)
 fn get_default_data_folder() -> PathBuf {
-    dirs::desktop_dir()
-        .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
         .join("WOPR")
 }
 

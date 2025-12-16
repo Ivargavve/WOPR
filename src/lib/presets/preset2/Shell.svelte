@@ -376,7 +376,7 @@
             <div class="tips-content">
               Type <span class="cmd">/help</span> for commands
               <br/><span class="cmd">/color 1-2</span> light/dark
-              <br/><span class="cmd">/preset 1-2</span> change UI
+              <br/><span class="cmd">/quote</span> get a quote
             </div>
           </div>
         </div>
@@ -643,15 +643,17 @@
     top: calc(100% + 4px);
     left: 50%;
     transform: translateX(-50%);
-    min-width: 130px;
-    background: var(--cozy-card, rgba(255, 255, 255, 0.95));
-    backdrop-filter: blur(10px);
+    min-width: 160px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-radius: 8px;
-    border: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.3));
+    border: 1px solid rgba(180, 160, 140, 0.3);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     overflow: hidden;
     z-index: 50;
     padding: 0.3rem 0;
+    white-space: nowrap;
   }
 
   .mode-option {
@@ -799,7 +801,7 @@
     border: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.3));
     border-radius: 8px;
     padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--cozy-card, rgba(255, 255, 255, 0.3));
   }
 
   .tips-title {
@@ -969,5 +971,16 @@
 
   :global(*::-webkit-scrollbar-thumb:hover) {
     background: rgba(200, 180, 160, 0.6);
+  }
+
+  /* Cozy text selection */
+  :global(::selection) {
+    background: var(--cozy-accent, #e8a87c);
+    color: white;
+  }
+
+  :global(::-moz-selection) {
+    background: var(--cozy-accent, #e8a87c);
+    color: white;
   }
 </style>
