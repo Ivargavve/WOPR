@@ -85,12 +85,8 @@
     gap: 0.6rem;
     width: 100%;
     padding: 0.75rem 1rem;
-    background: linear-gradient(
-      135deg,
-      rgba(212, 208, 232, 0.7) 0%,
-      rgba(240, 184, 192, 0.6) 100%
-    );
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: var(--cozy-card, rgba(255, 255, 255, 0.55));
+    border: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.3));
     border-radius: 14px;
     color: var(--cozy-text, #4a4039);
     font-family: inherit;
@@ -98,21 +94,13 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow:
-      0 4px 16px rgba(100, 80, 60, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   }
 
   .current-mode:hover {
     transform: translateY(-2px);
-    box-shadow:
-      0 6px 20px rgba(100, 80, 60, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    background: linear-gradient(
-      135deg,
-      rgba(212, 208, 232, 0.85) 0%,
-      rgba(240, 184, 192, 0.75) 100%
-    );
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    border-color: var(--cozy-accent, #e8a87c);
   }
 
   .mode-selector.open .current-mode {
@@ -142,18 +130,16 @@
     top: 100%;
     left: 0;
     right: 0;
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--cozy-card, rgba(255, 255, 255, 0.55));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.3));
     border-top: none;
     border-radius: 0 0 14px 14px;
     z-index: 100;
     max-height: 280px;
     overflow-y: auto;
-    box-shadow:
-      0 8px 32px rgba(100, 80, 60, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
 
   .mode-option {
@@ -164,7 +150,7 @@
     padding: 0.75rem 1rem;
     background: transparent;
     border: none;
-    border-bottom: 1px solid rgba(200, 180, 160, 0.15);
+    border-bottom: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.3));
     color: var(--cozy-text-light, #8b7d6b);
     font-family: inherit;
     cursor: pointer;
@@ -178,21 +164,13 @@
   }
 
   .mode-option:hover {
-    background: linear-gradient(
-      135deg,
-      rgba(212, 208, 232, 0.3) 0%,
-      rgba(240, 184, 192, 0.2) 100%
-    );
+    background: rgba(232, 168, 124, 0.15);
     color: var(--cozy-text, #4a4039);
   }
 
   .mode-option.active {
     color: var(--cozy-text, #4a4039);
-    background: linear-gradient(
-      135deg,
-      rgba(232, 168, 124, 0.25) 0%,
-      rgba(245, 212, 188, 0.3) 100%
-    );
+    background: rgba(232, 168, 124, 0.2);
   }
 
   .option-info {
