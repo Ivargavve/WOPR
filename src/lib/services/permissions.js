@@ -11,6 +11,15 @@ import { invoke } from '@tauri-apps/api/core';
  */
 
 /**
+ * Detect if we're running on macOS
+ * @returns {boolean}
+ */
+function isMacOS() {
+  return navigator.platform.toLowerCase().includes('mac') ||
+    navigator.userAgent.toLowerCase().includes('mac');
+}
+
+/**
  * Check all permission statuses
  * @returns {Promise<PermissionStatus>}
  */
@@ -105,4 +114,47 @@ export async function checkBrowserMicrophonePermission() {
     // Firefox doesn't support querying microphone permission
     return 'unknown';
   }
+}
+
+/**
+ * Check microphone permission (cross-platform)
+ * Uses native macOS plugin on macOS, falls back to browser API on other platforms
+ * @returns {Promise<boolean>}
+ */
+export async function checkMicrophonePermissionCrossPlatform() {
+  if (isMacOS()) {
+    try {
+      // Dynamically import the macOS plugin only on macOS
+      const macPermissions = await import('tauri-plugin-macos-permissions-api');
+      return await macPermissions.checkMicrophonePermission();
+    } catch (e) {
+      console.warn('macOS permissions plugin not available, using browser fallback:', e);
+      // Fall through to browser method
+    }
+  }
+
+  // Use browser API for Windows/Linux or as fallback
+  const state = await checkBrowserMicrophonePermission();
+  return state === 'granted';
+}
+
+/**
+ * Request microphone permission (cross-platform)
+ * Uses native macOS plugin on macOS, falls back to browser API on other platforms
+ * @returns {Promise<boolean>}
+ */
+export async function requestMicrophonePermissionCrossPlatform() {
+  if (isMacOS()) {
+    try {
+      // Dynamically import the macOS plugin only on macOS
+      const macPermissions = await import('tauri-plugin-macos-permissions-api');
+      return await macPermissions.requestMicrophonePermission();
+    } catch (e) {
+      console.warn('macOS permissions plugin not available, using browser fallback:', e);
+      // Fall through to browser method
+    }
+  }
+
+  // Use browser API for Windows/Linux or as fallback
+  return await requestMicrophonePermission();
 }

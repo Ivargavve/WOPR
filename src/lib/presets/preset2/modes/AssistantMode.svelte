@@ -5,7 +5,7 @@
   import { captureScreen } from '$lib/services/capture.js';
   import { loadKnowledge, parseAndExecuteKnowledgeCommands, removeKnowledge } from '$lib/services/knowledge.js';
   import * as voice from '$lib/services/voice.js';
-  import { checkMicrophonePermission, requestMicrophonePermission } from 'tauri-plugin-macos-permissions-api';
+  import { checkMicrophonePermissionCrossPlatform, requestMicrophonePermissionCrossPlatform } from '$lib/services/permissions.js';
   import { setCozyTheme, getCurrentCozyThemeId, COZY_THEMES } from '$lib/services/cozyTheme.js';
 
   /**
@@ -329,11 +329,11 @@ Type /help to see what I can do!`
   async function startVoiceWithPermission() {
     try {
       console.log('Checking microphone permission...');
-      const hasPermission = await checkMicrophonePermission();
+      const hasPermission = await checkMicrophonePermissionCrossPlatform();
 
       if (!hasPermission) {
         console.log('Requesting microphone permission...');
-        const granted = await requestMicrophonePermission();
+        const granted = await requestMicrophonePermissionCrossPlatform();
 
         if (!granted) {
           messages = [...messages, {

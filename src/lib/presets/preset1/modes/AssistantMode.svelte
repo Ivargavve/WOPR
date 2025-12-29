@@ -5,7 +5,7 @@
   import { captureScreen } from '$lib/services/capture.js';
   import { loadKnowledge, parseAndExecuteKnowledgeCommands, removeKnowledge } from '$lib/services/knowledge.js';
   import * as voice from '$lib/services/voice.js';
-  import { checkMicrophonePermission, requestMicrophonePermission } from 'tauri-plugin-macos-permissions-api';
+  import { checkMicrophonePermissionCrossPlatform, requestMicrophonePermissionCrossPlatform } from '$lib/services/permissions.js';
   import { setTheme, getCurrentTheme, getAllThemes } from '$lib/services/colorTheme.js';
 
   /**
@@ -418,21 +418,21 @@ TYPE /help FOR AVAILABLE COMMANDS.`
    */
   async function startVoiceWithPermission() {
     try {
-      // Check current permission status
+      // Check current permission status (cross-platform)
       console.log('Checking microphone permission...');
-      const hasPermission = await checkMicrophonePermission();
+      const hasPermission = await checkMicrophonePermissionCrossPlatform();
       console.log('Microphone permission status:', hasPermission);
 
       if (!hasPermission) {
-        // Request permission silently (macOS will show its own dialog)
+        // Request permission (system will show appropriate dialog)
         console.log('Requesting microphone permission...');
-        const granted = await requestMicrophonePermission();
+        const granted = await requestMicrophonePermissionCrossPlatform();
         console.log('Permission granted:', granted);
 
         if (!granted) {
           messages = [...messages, {
             role: 'system',
-            content: 'Microphone permission denied. Enable in System Settings > Privacy & Security > Microphone.',
+            content: 'Microphone permission denied. Enable in System Settings > Privacy > Microphone.',
             timestamp: Date.now()
           }];
           return;

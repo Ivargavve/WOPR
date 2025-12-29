@@ -4,6 +4,7 @@
   import { loadConfig, saveConfig, getDataPaths, changeDataFolder, getAutostartEnabled, setAutostartEnabled } from '$lib/services/storage.js';
   import { getAvailableScreens } from '$lib/services/capture.js';
   import { PROVIDERS, testConnection } from '$lib/services/ai.js';
+  import { getAvailableMicrophones, isMediaDevicesSupported } from '$lib/services/microphone.js';
   import { open } from '@tauri-apps/plugin-dialog';
 
   /** @type {{show: boolean, onclose: () => void}} */
@@ -20,6 +21,8 @@
   let displays = $state([]);
   /** @type {import('$lib/services/capture.js').ScreenCaptureInfo[]} */
   let captureScreens = $state([]);
+  /** @type {import('$lib/services/microphone.js').MicrophoneDevice[]} */
+  let microphones = $state([]);
 
   // Local state for form fields
   let personaName = $state('Joshua');
@@ -37,6 +40,8 @@
   let defaultFolderPath = $state('');
   /** @type {string} */
   let selectedMonitor = $state('default');
+  /** @type {string} */
+  let selectedMicrophone = $state('default');
 
   // Get available models for selected provider
   const availableModels = $derived(
@@ -73,6 +78,7 @@
         webSearchEnabled = config.web_search_enabled ?? false;
         selectedMonitor = config.selected_monitor !== null && config.selected_monitor !== undefined
           ? String(config.selected_monitor) : 'default';
+        selectedMicrophone = config.selected_microphone || 'default';
       }
 
       // Get data paths
@@ -87,6 +93,15 @@
         captureScreens = await getAvailableScreens();
       } catch (e) {
         console.error('Failed to get screens:', e);
+      }
+
+      // Get available microphones
+      try {
+        if (isMediaDevicesSupported()) {
+          microphones = await getAvailableMicrophones();
+        }
+      } catch (e) {
+        console.error('Failed to get microphones:', e);
       }
     } catch (e) {
       console.error('Failed to load settings:', e);
@@ -109,7 +124,8 @@
       wake_word: wakeWord,
       always_on_top: alwaysOnTop,
       web_search_enabled: webSearchEnabled,
-      selected_monitor: selectedMonitor === 'default' ? null : parseInt(selectedMonitor, 10)
+      selected_monitor: selectedMonitor === 'default' ? null : parseInt(selectedMonitor, 10),
+      selected_microphone: selectedMicrophone === 'default' ? null : selectedMicrophone
     };
 
     try {
@@ -317,6 +333,17 @@
                 placeholder="Buddy"
               />
             </div>
+            {#if microphones.length > 0}
+              <div class="form-group">
+                <label class="form-label">Microphone</label>
+                <select class="form-select" bind:value={selectedMicrophone}>
+                  <option value="default">System Default</option>
+                  {#each microphones as m}
+                    <option value={m.deviceId}>{m.label}</option>
+                  {/each}
+                </select>
+              </div>
+            {/if}
           </div>
 
           <!-- Screen Capture Section -->
