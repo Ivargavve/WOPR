@@ -10,41 +10,44 @@ The default AI persona is named **Joshua** (a WarGames reference), but you can c
 
 ## Features
 
-**Screen Observation**
-Captures your primary display, uses OCR to extract text, and detects what application you're using.
+**AI Chat with Vision**
+Multi provider support (OpenAI, Anthropic, Google Gemini) with screen analysis. Ask questions about what's on your screen.
 
 **Voice Activation**
-Say "Joshua" (or your custom wake word) to ask questions. Responses appear as popup overlays and auto dismiss.
+Say "Joshua" (or your custom wake word) to ask questions. Responses appear as popup overlays.
 
-**Plugin System**
-Each application has its own plugin with detection rules, context extraction, and AI guidelines.
+**Memory System**
+Persistent knowledge storage. The AI remembers things you tell it across sessions.
 
-**Privacy Controls**
-Large touch buttons let you disable screen capture or microphone instantly. Auto pauses for banking sites and password fields.
+**Web Search**
+Optional web search capability for supported models to get current information.
 
 ## Display Modes
 
 | Mode | Description |
 |------|-------------|
-| AI Assistant | Core experience: observes screen, provides contextual help |
-| System Monitor | Real time hardware stats with retro gauges |
-| Music Player | Control Spotify, Apple Music, and other apps |
-| Pomodoro Timer | Focus timer with calendar integration |
-| Chat Hub | Unified notifications for Discord, Slack, iMessage |
-| Control Deck | Customizable button grid for macros and app launching |
+| AI Assistant | Chat interface with vision and screen analysis |
+| System Monitor | Real time CPU, RAM, disk, network, GPU, and temperatures |
+| Pomodoro Timer | Focus timer with configurable work/break intervals |
+| Screen Time | Application usage tracking with work vs entertainment stats |
 
 ![WOPR in Action](static/wopr2.png)
+
+## UI Themes
+
+Two complete UI presets included:
+- **Retro**: CRT terminal aesthetic with WarGames personality
+- **Cozy**: Modern friendly theme with a supportive companion vibe
 
 ## Tech Stack
 
 | Component | Technology |
 |-----------|------------|
 | App Framework | Tauri (Rust + WebView) |
-| Frontend | Svelte |
+| Frontend | SvelteKit |
 | Screen Capture | macOS ScreenCaptureKit |
-| OCR | Apple Vision Framework |
-| Voice | Whisper or Web Speech API |
-| AI | Ollama (local) or Claude API |
+| Voice | Web Speech API |
+| AI | OpenAI, Anthropic, or Google Gemini |
 
 ## Getting Started
 
