@@ -277,7 +277,8 @@ pub fn get_activity_stats(state: tauri::State<ActivityTracker>) -> Result<Activi
     let mut today_vec: Vec<_> = data.today.iter().collect();
     today_vec.sort_by(|a, b| b.1.cmp(a.1));
 
-    let total_today = data.total_today.max(1);
+    // Calculate total from actual app data to ensure percentages are accurate
+    let total_today: u64 = data.today.values().sum::<u64>().max(1);
     let today: Vec<AppUsage> = today_vec
         .into_iter()
         .take(20)
@@ -311,7 +312,7 @@ pub fn get_activity_stats(state: tauri::State<ActivityTracker>) -> Result<Activi
         today,
         all_time,
         session_duration,
-        total_today: data.total_today,
+        total_today,
         current_app: last_app.clone(),
     })
 }

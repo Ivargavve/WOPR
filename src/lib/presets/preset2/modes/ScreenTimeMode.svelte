@@ -86,8 +86,9 @@
   // Today's data
   const todayCategories = $derived(categorizeApps(stats?.today));
   const todayTotal = $derived(stats?.total_today ?? 0);
+  // Calculate percentages that always add up to 100%
   const workPercent = $derived(todayTotal ? Math.round((getCategorySeconds(todayCategories.work) / todayTotal) * 100) : 0);
-  const playPercent = $derived(todayTotal ? Math.round((getCategorySeconds(todayCategories.play) / todayTotal) * 100) : 0);
+  const playPercent = $derived(todayTotal ? 100 - workPercent : 0);
 
   // All-time data
   const allTimeCategories = $derived(categorizeApps(stats?.all_time));

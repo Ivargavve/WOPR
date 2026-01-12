@@ -19,7 +19,10 @@
         "decorations": true,
         "transparent": false,
         "alwaysOnTop": false,
-        "skipTaskbar": true
+        "skipTaskbar": false,
+        "visible": true,
+        "theme": "Dark",
+        "backgroundColor": [10, 10, 10, 255]
       }
     ],
     "security": {

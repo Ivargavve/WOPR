@@ -141,14 +141,52 @@ pub fn run() {
             // Restore window state on startup
             if let Some(window) = app.get_webview_window("main") {
                 let config = window::load_window_config(app.handle());
-                if let Err(e) = window.set_position(tauri::PhysicalPosition::<i32>::new(config.x, config.y))
-                {
-                    eprintln!("Failed to restore window position: {}", e);
+
+                // Check if saved position is on an available monitor
+                let monitors: Vec<_> = window.available_monitors().unwrap_or_default();
+                let position_valid = monitors.iter().any(|monitor| {
+                    let pos = monitor.position();
+                    let size = monitor.size();
+                    config.x >= pos.x
+                        && config.x < pos.x + size.width as i32
+                        && config.y >= pos.y
+                        && config.y < pos.y + size.height as i32
+                });
+
+                if position_valid {
+                    if let Err(e) = window.set_position(tauri::PhysicalPosition::<i32>::new(config.x, config.y))
+                    {
+                        eprintln!("Failed to restore window position: {}", e);
+                    }
+                } else {
+                    // Position is off-screen, center on primary monitor
+                    if let Ok(Some(primary)) = window.primary_monitor() {
+                        let pos = primary.position();
+                        let size = primary.size();
+                        let x = pos.x + (size.width as i32 - config.width as i32) / 2;
+                        let y = pos.y + (size.height as i32 - config.height as i32) / 2;
+                        let _ = window.set_position(tauri::PhysicalPosition::<i32>::new(x, y));
+                    }
                 }
+
                 if let Err(e) =
                     window.set_size(tauri::PhysicalSize::new(config.width, config.height))
                 {
                     eprintln!("Failed to restore window size: {}", e);
+                }
+
+                // Restore fullscreen state
+                if config.is_fullscreen {
+                    if let Err(e) = window.set_fullscreen(true) {
+                        eprintln!("Failed to restore fullscreen: {}", e);
+                    }
+                }
+
+                // Restore borderless state
+                if config.is_borderless {
+                    if let Err(e) = window.set_decorations(false) {
+                        eprintln!("Failed to restore borderless: {}", e);
+                    }
                 }
             }
             Ok(())

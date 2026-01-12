@@ -102,6 +102,10 @@
   // All-time data
   const allTimeCategories = $derived(categorizeApps(stats?.all_time));
   const allTimeTotal = $derived(getCategorySeconds(stats?.all_time ?? []));
+
+  // Calculate percentages that always add up to 100%
+  const workPercent = $derived(todayTotal ? Math.round((getCategorySeconds(todayCategories.work) / todayTotal) * 100) : 0);
+  const playPercent = $derived(todayTotal ? 100 - workPercent : 0);
 </script>
 
 <div class="screentime-mode">
@@ -151,7 +155,7 @@
       <div class="category">
         <div class="category-header">
           <span class="category-name">WORK</span>
-          <span class="category-percent">{todayTotal ? Math.round((getCategorySeconds(todayCategories.work) / todayTotal) * 100) : 0}%</span>
+          <span class="category-percent">{workPercent}%</span>
         </div>
         <div class="category-list">
           {#each todayCategories.work.slice(0, 12) as app, i}
@@ -170,7 +174,7 @@
       <div class="category">
         <div class="category-header">
           <span class="category-name">PLAY</span>
-          <span class="category-percent">{todayTotal ? Math.round((getCategorySeconds(todayCategories.play) / todayTotal) * 100) : 0}%</span>
+          <span class="category-percent">{playPercent}%</span>
         </div>
         <div class="category-list">
           {#each todayCategories.play.slice(0, 12) as app, i}
