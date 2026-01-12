@@ -405,14 +405,14 @@
   }
 
   .phase-label {
-    font-size: 1rem;
+    font-size: 1.2rem;
     letter-spacing: 0.2em;
     margin-bottom: 0.5rem;
     opacity: 0.9;
   }
 
   .time-display {
-    font-size: 4rem;
+    font-size: 4.5rem;
     font-weight: bold;
     text-shadow: 0 0 30px currentColor;
     letter-spacing: 0.1em;
@@ -494,14 +494,14 @@
   }
 
   .stat-val {
-    font-size: 1rem;
+    font-size: 1.3rem;
     font-weight: bold;
     color: var(--text-primary);
     text-shadow: 0 0 8px var(--text-primary);
   }
 
   .stat-lbl {
-    font-size: 0.5rem;
+    font-size: 0.7rem;
     color: var(--text-dim);
     letter-spacing: 0.1em;
   }
@@ -584,7 +584,7 @@
   }
 
   .panel-title {
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     color: var(--text-dim);
     letter-spacing: 0.15em;
   }
@@ -614,7 +614,7 @@
   }
 
   .setting-name {
-    font-size: 0.55rem;
+    font-size: 0.75rem;
     color: var(--text-dim);
     letter-spacing: 0.1em;
   }
@@ -645,13 +645,13 @@
   }
 
   .setting-controls input {
-    width: 40px;
-    height: 28px;
+    width: 45px;
+    height: 30px;
     background: var(--bg-tint-40);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     font-family: var(--font-mono);
-    font-size: 0.8rem;
+    font-size: 1rem;
     text-align: center;
     -moz-appearance: textfield;
   }
@@ -668,7 +668,7 @@
   }
 
   .unit {
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     color: var(--text-dim);
     min-width: 22px;
   }
@@ -679,7 +679,7 @@
     justify-content: center;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.55rem;
+    font-size: 0.75rem;
     color: var(--text-dim);
     padding-top: 0.5rem;
     border-top: 1px dashed var(--border-color);

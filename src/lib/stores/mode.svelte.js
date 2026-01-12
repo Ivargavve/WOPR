@@ -1,5 +1,7 @@
+import { updateConfigValue } from '$lib/services/storage.js';
+
 /**
- * @typedef {'assistant' | 'monitor' | 'screentime' | 'pomodoro'} ModeType
+ * @typedef {'assistant' | 'monitor' | 'screentime' | 'pomodoro' | 'clock'} ModeType
  */
 
 /**
@@ -35,6 +37,12 @@ export const MODES = [
     name: 'Terminal',
     icon: '>>',
     description: 'Command line'
+  },
+  {
+    id: 'clock',
+    name: 'Clock',
+    icon: '◷',
+    description: 'Large clock'
   }
 ];
 
@@ -61,13 +69,27 @@ export function getCurrentModeInfo() {
 }
 
 /**
- * Set current mode
+ * Initialize mode from saved config
+ * @param {ModeType} mode
+ */
+export function initMode(mode) {
+  if (MODES.some(m => m.id === mode)) {
+    currentMode = mode;
+  }
+}
+
+/**
+ * Set current mode and persist to config
  * @param {ModeType} mode
  */
 export function setMode(mode) {
   if (currentMode !== mode) {
     previousMode = currentMode;
     currentMode = mode;
+    // Persist to config
+    updateConfigValue('current_mode', mode).catch(e => {
+      console.error('Failed to save current mode:', e);
+    });
   }
 }
 

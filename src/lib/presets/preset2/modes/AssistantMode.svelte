@@ -829,7 +829,7 @@ Type /help to see what I can do!`
     display: flex;
     gap: 0.5rem;
     line-height: 1.6;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
   }
 
   .prompt {
@@ -858,7 +858,7 @@ Type /help to see what I can do!`
 
   .system-content {
     color: var(--cozy-text-muted, #9a8a7a);
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-style: italic;
   }
 
@@ -887,14 +887,14 @@ Type /help to see what I can do!`
   .input-prompt {
     color: var(--cozy-accent, #d4956a);
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
   }
 
   .terminal-input {
     flex: 1;
     padding: 0.6rem 0;
     border: none;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
     background: transparent;
     color: var(--cozy-text, #5a5048);

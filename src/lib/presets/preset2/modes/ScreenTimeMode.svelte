@@ -263,18 +263,18 @@
   }
 
   .stat-block.total .stat-value {
-    font-size: 1.3rem;
+    font-size: 1.6rem;
     color: var(--cozy-accent, #e8a87c);
   }
 
   .stat-value {
-    font-size: 1rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--cozy-text, #4a4039);
   }
 
   .stat-label {
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     color: var(--cozy-text-muted, #a89b8a);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -291,7 +291,7 @@
   }
 
   .top-apps-label {
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     color: var(--cozy-text-muted, #a89b8a);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -310,7 +310,7 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     color: var(--cozy-text-light, #8b7d6b);
     padding: 0.15rem 0;
   }
@@ -337,12 +337,12 @@
   }
 
   .top-app-seen {
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     color: var(--cozy-text-muted, #a89b8a);
   }
 
   .no-data {
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     color: var(--cozy-text-muted, #a89b8a);
     font-style: italic;
   }
@@ -356,14 +356,14 @@
   }
 
   .today-label {
-    font-size: 0.8rem;
+    font-size: 1rem;
     color: var(--cozy-text-light, #8b7d6b);
     text-transform: uppercase;
     letter-spacing: 0.1em;
   }
 
   .today-total {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: 700;
     color: var(--cozy-text, #4a4039);
     margin-left: auto;
@@ -411,13 +411,13 @@
   }
 
   .bar-label {
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     color: var(--cozy-text, #5a5048);
     font-weight: 500;
   }
 
   .bar-value {
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--cozy-text, #4a4039);
   }
@@ -469,14 +469,14 @@
   }
 
   .column-title {
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     color: var(--cozy-text-light, #8b7d6b);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   .column-percent {
-    font-size: 1.1rem;
+    font-size: 1.4rem;
     font-weight: 700;
     color: var(--cozy-text, #4a4039);
   }
@@ -494,7 +494,7 @@
     gap: 0.3rem;
     padding: 0.4rem 0.5rem;
     border-radius: 8px;
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     margin-bottom: 0.2rem;
   }
 
@@ -521,7 +521,7 @@
   }
 
   .app-seen {
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     color: var(--cozy-text-muted, #a89b8a);
   }
 
@@ -536,7 +536,7 @@
     color: var(--cozy-text-muted, #a89b8a);
     text-align: center;
     padding: 1.5rem;
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     font-style: italic;
   }
 
@@ -547,7 +547,7 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.3rem;
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     color: var(--cozy-text-muted, #a89b8a);
   }
 

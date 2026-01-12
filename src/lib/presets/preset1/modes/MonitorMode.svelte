@@ -207,7 +207,7 @@
 
     <!-- CPU Temp - only show if available -->
     {#if cpuTemperature !== null}
-      <div class="stat-card">
+      <div class="stat-card temp-card">
         <div class="donut-container">
           <svg viewBox="0 0 80 80" class="donut">
             <circle cx="40" cy="40" r="36" class="donut-bg" />
@@ -228,7 +228,7 @@
 
     <!-- GPU Temp - only show if available -->
     {#if gpuTemperature !== null}
-      <div class="stat-card">
+      <div class="stat-card temp-card">
         <div class="donut-container">
           <svg viewBox="0 0 80 80" class="donut">
             <circle cx="40" cy="40" r="36" class="donut-bg" />
@@ -322,7 +322,7 @@
     padding: 0.4rem 0.6rem;
     display: flex;
     gap: 0.5rem;
-    font-size: 0.6rem;
+    font-size: 0.9rem;
   }
 
   .error-title {
@@ -341,8 +341,8 @@
     justify-content: space-around;
     align-items: center;
     gap: 0.25rem;
-    padding: 0.2rem 0;
-    flex: 1;
+    padding: 0.5rem 0 0.2rem 0;
+    flex: 0 0 auto;
     min-height: 0;
   }
 
@@ -357,8 +357,8 @@
 
   .donut-container {
     position: relative;
-    width: 130px;
-    height: 130px;
+    width: min(175px, 20vw);
+    height: min(175px, 20vw);
   }
 
   .donut {
@@ -386,24 +386,24 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 1.5rem;
+    font-size: 2.8rem;
     font-weight: bold;
     text-shadow: 0 0 10px currentColor;
   }
 
   .stat-label {
-    font-size: 0.7rem;
+    font-size: 1.1rem;
     color: var(--text-dim);
     letter-spacing: 0.1em;
     text-align: center;
-    max-width: 120px;
+    max-width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .stat-sub {
-    font-size: 0.65rem;
+    font-size: 1rem;
     color: var(--text-dim);
     opacity: 0.7;
   }
@@ -425,7 +425,7 @@
   }
 
   .info-label {
-    font-size: 0.6rem;
+    font-size: 1rem;
     color: var(--text-dim);
     letter-spacing: 0.1em;
   }
@@ -433,12 +433,12 @@
   .info-values {
     display: flex;
     gap: 0.6rem;
-    font-size: 0.7rem;
+    font-size: 1.1rem;
     color: var(--text-primary);
   }
 
   .uptime-value {
-    font-size: 1.1rem;
+    font-size: 1.8rem;
     font-weight: bold;
     color: var(--text-primary);
     text-shadow: 0 0 8px var(--text-primary);
@@ -449,7 +449,7 @@
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    font-size: 0.75rem;
+    font-size: 1.1rem;
     color: var(--text-primary);
   }
 
@@ -472,16 +472,16 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    max-height: 180px;
+    max-height: 120px;
     overflow: hidden;
   }
 
   .process-header {
     display: grid;
-    grid-template-columns: 50px 100px 1fr 50px;
+    grid-template-columns: 60px 120px 1fr 60px;
     gap: 0.5rem;
-    padding: 0.3rem 0.4rem;
-    font-size: 0.6rem;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
     color: var(--text-dim);
     letter-spacing: 0.05em;
     border-bottom: 1px dashed var(--border-color);
@@ -498,10 +498,10 @@
 
   .process-row {
     display: grid;
-    grid-template-columns: 50px 100px 1fr 50px;
+    grid-template-columns: 60px 120px 1fr 60px;
     gap: 0.5rem;
-    padding: 0.25rem 0.4rem;
-    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.8rem;
     color: var(--text-primary);
     border-bottom: 1px dashed var(--text-primary-10);
     align-items: center;
@@ -513,7 +513,7 @@
 
   .process-row .pid {
     color: var(--text-dim);
-    font-size: 0.65rem;
+    font-size: 0.75rem;
   }
 
   .process-row .name {
@@ -526,7 +526,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    height: 14px;
+    height: 12px;
     background: var(--text-primary-05);
     border: 1px solid var(--text-primary-15);
     position: relative;
@@ -552,7 +552,7 @@
   .cpu-value {
     position: absolute;
     right: 6px;
-    font-size: 0.6rem;
+    font-size: 0.75rem;
     color: var(--text-primary);
     text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
   }
@@ -564,7 +564,7 @@
   .process-row .mem {
     text-align: right;
     color: var(--text-dim);
-    font-size: 0.65rem;
+    font-size: 0.75rem;
   }
 
   /* Footer */
@@ -573,7 +573,7 @@
     justify-content: center;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.5rem;
+    font-size: 0.8rem;
     color: var(--text-dim);
     padding-top: 0.3rem;
   }
@@ -591,7 +591,23 @@
     50% { opacity: 0.4; }
   }
 
-  /* Responsive */
+  /* Responsive - hide temp cards when space is limited */
+  @media (max-width: 900px) {
+    .temp-card {
+      display: none;
+    }
+  }
+
+  @media (max-width: 800px) {
+    .donut-container {
+      width: min(140px, 18vw);
+      height: min(140px, 18vw);
+    }
+    .donut-value {
+      font-size: 2.2rem;
+    }
+  }
+
   @media (max-width: 600px) {
     .stats-row {
       flex-wrap: wrap;

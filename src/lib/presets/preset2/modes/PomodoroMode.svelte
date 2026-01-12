@@ -387,7 +387,7 @@
   }
 
   .phase-label {
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     font-weight: 600;
     letter-spacing: 0.05em;
     margin-bottom: 0.3rem;
@@ -395,7 +395,7 @@
   }
 
   .time-display {
-    font-size: 3.5rem;
+    font-size: 4.5rem;
     font-weight: 700;
     color: var(--cozy-text, #4a4039);
     letter-spacing: -0.02em;
@@ -481,13 +481,13 @@
   }
 
   .stat-val {
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     font-weight: 700;
     color: var(--cozy-text, #4a4039);
   }
 
   .stat-lbl {
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     color: var(--cozy-text-muted, #a89b8a);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -572,7 +572,7 @@
   }
 
   .panel-title {
-    font-size: 0.8rem;
+    font-size: 1rem;
     color: var(--cozy-text-light, #8b7d6b);
     font-weight: 600;
     text-transform: uppercase;
@@ -606,7 +606,7 @@
   }
 
   .setting-name {
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     color: var(--cozy-text-muted, #a89b8a);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -639,9 +639,9 @@
   }
 
   .setting-value {
-    min-width: 40px;
+    min-width: 45px;
     text-align: center;
-    font-size: 0.85rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: var(--cozy-text, #4a4039);
   }
@@ -652,7 +652,7 @@
     justify-content: center;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     color: var(--cozy-text-muted, #a89b8a);
     padding-top: 0.5rem;
     border-top: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.2));

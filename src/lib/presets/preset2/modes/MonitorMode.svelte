@@ -114,8 +114,6 @@
 </script>
 
 <div class="monitor-mode">
-  <!-- Decorative cat -->
-  <div class="deco-cat cat-monitor-2"></div>
 
   {#if error}
     <div class="error-card">
@@ -279,26 +277,6 @@
     position: relative;
   }
 
-  /* Decorative cats */
-  .deco-cat {
-    position: absolute;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.4;
-  }
-
-  .cat-monitor-2 {
-    width: 22px;
-    height: 22px;
-    bottom: 8px;
-    right: 8px;
-    background-image: var(--cat-image-7, url('../assets/cats/c7.png'));
-    transform: rotate(-5deg);
-  }
-
   .error-card {
     padding: 0.5rem 0.75rem;
     background: rgba(240, 184, 192, 0.2);
@@ -308,24 +286,25 @@
 
   .error-text {
     color: #8a6060;
-    font-size: 0.8rem;
+    font-size: 1rem;
   }
 
   /* Stats Grid */
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.6rem;
+    flex: 1;
   }
 
   .stat-card {
     background: var(--cozy-card, rgba(255, 255, 255, 0.35));
     border-radius: 12px;
-    padding: 0.7rem;
+    padding: 1rem;
   }
 
   .stat-card.small {
-    padding: 0.5rem 0.7rem;
+    padding: 0.7rem 1rem;
   }
 
   .card-header {
@@ -336,28 +315,28 @@
   }
 
   .card-title {
-    font-size: 0.8rem;
+    font-size: 1.3rem;
     font-weight: 600;
     color: var(--cozy-text, #5a5048);
   }
 
   .card-value {
-    font-size: 1.2rem;
+    font-size: 2.2rem;
     font-weight: 700;
     color: var(--cozy-text, #4a4039);
   }
 
   .card-value.temp {
-    font-size: 1rem;
+    font-size: 1.8rem;
     color: var(--cozy-accent, #e8a87c);
   }
 
   .bar-container {
-    height: 10px;
+    height: 14px;
     background: rgba(200, 180, 160, 0.15);
-    border-radius: 5px;
+    border-radius: 7px;
     overflow: hidden;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.5rem;
   }
 
   .bar-fill {
@@ -381,7 +360,7 @@
   }
 
   .footer-label {
-    font-size: 0.7rem;
+    font-size: 1.1rem;
     color: var(--cozy-text-light, #8b7d6b);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -389,7 +368,7 @@
   }
 
   .footer-sub {
-    font-size: 0.65rem;
+    font-size: 1rem;
     color: var(--cozy-text-muted, #a89b8a);
   }
 
@@ -412,14 +391,14 @@
   }
 
   .info-label {
-    font-size: 0.65rem;
+    font-size: 1.1rem;
     color: var(--cozy-text-muted, #a89b8a);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   .info-value {
-    font-size: 0.8rem;
+    font-size: 1.3rem;
     font-weight: 600;
     color: var(--cozy-text, #5a5048);
     display: flex;
@@ -432,7 +411,7 @@
   }
 
   .net-arrow {
-    font-size: 0.7rem;
+    font-size: 0.9rem;
   }
 
   .net-arrow.down {
@@ -457,10 +436,9 @@
 
   /* Processes */
   .processes-card {
-    flex: 1;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
-    min-height: 0;
     background: var(--cozy-card, rgba(255, 255, 255, 0.3));
     border-radius: 12px;
     overflow: hidden;
@@ -468,10 +446,10 @@
 
   .processes-header {
     display: grid;
-    grid-template-columns: 50px 1fr 120px 55px;
+    grid-template-columns: 60px 1fr 130px 65px;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: var(--cozy-text-muted, #a89b8a);
     text-transform: uppercase;
@@ -487,10 +465,10 @@
 
   .process-row {
     display: grid;
-    grid-template-columns: 50px 1fr 120px 55px;
+    grid-template-columns: 60px 1fr 130px 65px;
     gap: 0.5rem;
     padding: 0.4rem 0.5rem;
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     color: var(--cozy-text, #5a5048);
     border-radius: 8px;
     align-items: center;
@@ -505,7 +483,7 @@
   }
 
   .col-pid {
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     color: var(--cozy-text-muted, #a89b8a);
   }
 
@@ -545,14 +523,14 @@
   }
 
   .cpu-value {
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     color: var(--cozy-text-light, #8b7d6b);
-    min-width: 35px;
+    min-width: 40px;
     text-align: right;
   }
 
   .col-mem {
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     color: var(--cozy-text-light, #8b7d6b);
     text-align: right;
   }
@@ -561,7 +539,7 @@
     padding: 1.5rem;
     text-align: center;
     color: var(--cozy-text-muted, #a89b8a);
-    font-size: 0.8rem;
+    font-size: 1rem;
   }
 
   /* Footer */
@@ -571,7 +549,7 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.3rem;
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     color: var(--cozy-text-muted, #a89b8a);
   }
 
@@ -586,5 +564,33 @@
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
+  }
+
+  /* Responsive - hide temp cards when space is limited */
+  @media (max-width: 900px) {
+    .stat-card.small {
+      display: none;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .stats-grid {
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    }
+    .card-value {
+      font-size: 1.8rem;
+    }
+    .card-title {
+      font-size: 1.1rem;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .card-value {
+      font-size: 1.5rem;
+    }
   }
 </style>

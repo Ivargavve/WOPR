@@ -1006,7 +1006,7 @@ SWITCHING INTERFACE...`,
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
-    font-size: 0.85rem;
+    font-size: 1.05rem;
     line-height: 1.5;
     margin-bottom: 0.2rem;
     width: 100%;
@@ -1033,7 +1033,7 @@ SWITCHING INTERFACE...`,
   .timestamp {
     color: rgba(255, 255, 255, 0.7);
     flex-shrink: 0;
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     align-self: flex-start;
     padding-top: 0.05rem;
     font-family: 'Courier New', 'Lucida Console', monospace;

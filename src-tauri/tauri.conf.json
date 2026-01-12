@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "WOPR",
-        "width": 480,
-        "height": 800,
+        "width": 1024,
+        "height": 600,
         "resizable": true,
         "decorations": true,
         "transparent": false,

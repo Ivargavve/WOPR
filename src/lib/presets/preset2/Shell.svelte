@@ -1,8 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { ModeSelector, SettingsPanel, AIPopup } from './components';
-  import { getCurrentMode, getCurrentModeInfo, setMode } from '$lib/stores/mode.svelte.js';
-  import { AssistantMode, MonitorMode, PomodoroMode, ScreenTimeMode } from './modes';
+  import { getCurrentMode, getCurrentModeInfo, setMode, initMode } from '$lib/stores/mode.svelte.js';
+  import { AssistantMode, MonitorMode, PomodoroMode, ScreenTimeMode, ClockMode } from './modes';
   import { loadConfig, saveConfig } from '$lib/services/storage.js';
   import { loadKnowledge } from '$lib/services/knowledge.js';
   import * as permissions from '$lib/services/permissions.js';
@@ -41,8 +41,8 @@
   // Screen time tracking
   let screentimeEnabled = $state(true);
 
-  // Fullscreen mode (hide sidebar and bottom bar)
-  let fullscreenMode = $state(false);
+  // Fullscreen mode (hide sidebar and bottom bar) - default to true
+  let fullscreenMode = $state(true);
 
   // Mode dropdown
   let showModeDropdown = $state(false);
@@ -51,7 +51,8 @@
     { id: 'monitor', label: 'System Monitor' },
     { id: 'screentime', label: 'Screen Time' },
     { id: 'pomodoro', label: 'Pomodoro Timer' },
-    { id: 'assistant', label: 'Terminal' }
+    { id: 'assistant', label: 'Terminal' },
+    { id: 'clock', label: 'Clock' }
   ];
 
   // Get time-based greeting
@@ -90,13 +91,17 @@
     // Load cozy theme
     loadAndApplyCozyTheme();
 
-    // Load config
+    // Load config and restore saved mode
     loadConfig().then(config => {
       currentConfig = config;
       visionOn = config.vision_enabled;
       listening = config.voice_enabled;
       screentimeEnabled = config.screentime_enabled ?? true;
       userName = config.user_name || '';
+      // Restore saved mode
+      if (config.current_mode) {
+        initMode(/** @type {import('$lib/stores/mode.svelte.js').ModeType} */ (config.current_mode));
+      }
     }).catch(e => {
       console.error('Failed to load config:', e);
     });
@@ -244,6 +249,8 @@
           <PomodoroMode fullscreen={fullscreenMode} />
         {:else if currentMode === 'screentime'}
           <ScreenTimeMode />
+        {:else if currentMode === 'clock'}
+          <ClockMode />
         {:else if currentMode !== 'assistant'}
           <div class="coming-soon">
             <p>Coming soon</p>
@@ -376,7 +383,7 @@
               Type <span class="cmd">/help</span> for commands
               <br/><span class="cmd">/color 1-2</span> light/dark
               <br/><span class="cmd">/quote</span> get a quote
-              <br/><span class="cmd">⌘/Ctrl 1-4</span> switch modes
+              <br/><span class="cmd">⌘/Ctrl 1-5</span> switch modes
             </div>
           </div>
         </div>
@@ -553,13 +560,13 @@
 
   .clock-hours,
   .clock-minutes {
-    font-size: 2.4rem;
+    font-size: 3rem;
     font-weight: 600;
     color: var(--cozy-text, #4a4039);
   }
 
   .clock-colon {
-    font-size: 2.2rem;
+    font-size: 2.8rem;
     font-weight: 400;
     color: var(--cozy-accent, #e8a87c);
     animation: blink 1s ease-in-out infinite;
@@ -571,14 +578,14 @@
   }
 
   .clock-ampm {
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     font-weight: 500;
     color: var(--cozy-text-light, #8b7d6b);
     margin-left: 4px;
   }
 
   .greeting-text {
-    font-size: 0.8rem;
+    font-size: 1rem;
     color: var(--cozy-text-light, #8b7d6b);
     margin-top: 0.25rem;
   }
@@ -606,20 +613,20 @@
   }
 
   .mode-prefix {
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     color: var(--cozy-text-muted, #a89b8a);
     text-transform: uppercase;
   }
 
   .mode-current {
-    font-size: 0.8rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--cozy-text, #4a4039);
     white-space: nowrap;
   }
 
   .mode-arrow {
-    font-size: 0.55rem;
+    font-size: 0.7rem;
     color: var(--cozy-text-light, #8b7d6b);
     transition: transform 0.2s ease;
   }
@@ -655,7 +662,7 @@
     border: none;
     cursor: pointer;
     font-family: inherit;
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     color: var(--cozy-text-light, #8b7d6b);
     transition: all 0.15s ease;
   }
@@ -685,7 +692,7 @@
     border: none;
     color: var(--cozy-text-light, #8b7d6b);
     font-family: inherit;
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     cursor: pointer;
@@ -716,7 +723,7 @@
   .memory-item {
     display: flex;
     gap: 0.3rem;
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     padding: 0.25rem 0;
     border-bottom: 1px solid var(--cozy-border, rgba(180, 160, 140, 0.2));
     color: var(--cozy-text-light, #8b7d6b);
@@ -737,7 +744,7 @@
   }
 
   .memory-empty {
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     color: var(--cozy-text-muted, #a89b8a);
     text-align: center;
     padding: 0.5rem;
@@ -770,12 +777,12 @@
 
   .indicator-label {
     text-transform: uppercase;
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     letter-spacing: 0.1em;
   }
 
   .indicator-value {
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     font-weight: 500;
   }
 
@@ -795,7 +802,7 @@
   }
 
   .tips-title {
-    font-size: 0.55rem;
+    font-size: 0.75rem;
     color: var(--cozy-text-muted, #a89b8a);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -805,7 +812,7 @@
   }
 
   .tips-content {
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     color: var(--cozy-text-light, #8b7d6b);
     line-height: 1.5;
   }
@@ -845,7 +852,7 @@
     border: none;
     color: var(--cozy-text-light, #8b7d6b);
     font-family: 'Quicksand', sans-serif;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
     cursor: pointer;
     transition: all 0.15s ease;
     text-transform: uppercase;
@@ -888,17 +895,17 @@
 
   .btn-bracket {
     color: var(--cozy-border, rgba(180, 160, 140, 0.5));
-    font-size: 1.1rem;
+    font-size: 1.4rem;
     font-weight: 300;
     transition: all 0.15s ease;
   }
 
   .btn-icon {
-    font-size: 1.3rem;
+    font-size: 1.6rem;
   }
 
   .btn-label {
-    font-size: 0.85rem;
+    font-size: 1.05rem;
     font-weight: 500;
     letter-spacing: 0.1em;
   }

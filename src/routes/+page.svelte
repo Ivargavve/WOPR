@@ -73,7 +73,8 @@
         '1': 0, // monitor
         '2': 1, // screentime
         '3': 2, // pomodoro
-        '4': 3  // assistant
+        '4': 3, // assistant
+        '5': 4  // clock
       };
 
       const modeIndex = keyToIndex[event.key];

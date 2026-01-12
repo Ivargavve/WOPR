@@ -1,8 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { RetroButton, ModeSelector, SettingsPanel, AIPopup } from './components';
-  import { getCurrentMode, getCurrentModeInfo } from '$lib/stores/mode.svelte.js';
-  import { AssistantMode, MonitorMode, PomodoroMode, ScreenTimeMode } from './modes';
+  import { getCurrentMode, getCurrentModeInfo, initMode } from '$lib/stores/mode.svelte.js';
+  import { AssistantMode, MonitorMode, PomodoroMode, ScreenTimeMode, ClockMode } from './modes';
   import { loadConfig, saveConfig } from '$lib/services/storage.js';
   import { loadKnowledge } from '$lib/services/knowledge.js';
   import * as permissions from '$lib/services/permissions.js';
@@ -39,8 +39,8 @@
   // Screen time tracking state
   let screentimeEnabled = $state(true);
 
-  // Fullscreen mode (hide sidebar and bottom bar)
-  let fullscreenMode = $state(false);
+  // Fullscreen mode (hide sidebar and bottom bar) - default to true
+  let fullscreenMode = $state(true);
 
   // Reload memory periodically
   async function reloadMemory() {
@@ -77,12 +77,16 @@
       console.error('Failed to load color theme:', e);
     });
 
-    // Load config to get vision/voice state
+    // Load config to get vision/voice state and saved mode
     loadConfig().then(config => {
       currentConfig = config;
       visionOn = config.vision_enabled;
       listening = config.voice_enabled;
       screentimeEnabled = config.screentime_enabled ?? true;
+      // Restore saved mode
+      if (config.current_mode) {
+        initMode(/** @type {import('$lib/stores/mode.svelte.js').ModeType} */ (config.current_mode));
+      }
       // Update status after config loads
       setTimeout(() => {
         status = visionOn ? 'OBSERVING' : 'STANDBY';
@@ -239,6 +243,8 @@
           <PomodoroMode fullscreen={fullscreenMode} />
         {:else if currentMode === 'screentime'}
           <ScreenTimeMode />
+        {:else if currentMode === 'clock'}
+          <ClockMode />
         {:else if currentMode !== 'assistant'}
           <div class="coming-soon">
             <p class="mode-title">[{modeInfo.icon}] {modeInfo.name}</p>
@@ -354,7 +360,7 @@
               <br/><span class="cmd">/color 1-5</span> change theme
               <br/><span class="cmd">/quote</span> get a quote
               <br/><span class="cmd">/defcon 1-5</span> alert level
-              <br/><span class="cmd">⌘/Ctrl 1-4</span> switch modes
+              <br/><span class="cmd">⌘/Ctrl 1-5</span> switch modes
             </div>
           </div>
         </div>
@@ -464,7 +470,7 @@
   }
 
   .wopr-ascii {
-    font-size: 0.42rem;
+    font-size: 0.38rem;
     line-height: 1.1;
     color: var(--text-primary);
     text-shadow: 0 0 10px var(--text-primary), 0 0 20px var(--text-primary-30);
@@ -477,7 +483,7 @@
     justify-content: center;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.55rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     margin-top: 0.3rem;
   }
@@ -502,7 +508,7 @@
   }
 
   .section-label {
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.15em;
@@ -537,18 +543,18 @@
   }
 
   .indicator-icon {
-    font-size: 1.4rem;
+    font-size: 1.8rem;
   }
 
   .indicator-label {
     text-transform: uppercase;
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     letter-spacing: 0.1em;
   }
 
   .indicator-value {
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.9rem;
   }
 
   .blink {
@@ -563,7 +569,7 @@
   /* DEFCON Inline (in status line) */
   .defcon-inline {
     font-family: var(--font-mono);
-    font-size: 0.55rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
   }
 
@@ -592,7 +598,7 @@
     border: none;
     color: var(--text-dim);
     font-family: var(--font-mono);
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.15em;
     cursor: pointer;
@@ -621,7 +627,7 @@
   .memory-item {
     display: flex;
     gap: 0.3rem;
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     padding: 0.2rem 0;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-dim);
@@ -643,7 +649,7 @@
   }
 
   .memory-empty {
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     color: var(--text-dim);
     opacity: 0.5;
     text-align: center;
@@ -661,7 +667,7 @@
   }
 
   .tips-title {
-    font-size: 0.5rem;
+    font-size: 0.65rem;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -671,7 +677,7 @@
   }
 
   .tips-content {
-    font-size: 0.5rem;
+    font-size: 0.65rem;
     color: var(--text-dim);
     line-height: 1.4;
   }
@@ -691,7 +697,7 @@
   }
 
   .mode-title {
-    font-size: 1rem;
+    font-size: 1.3rem;
     color: var(--text-primary);
   }
 
@@ -737,8 +743,8 @@
 
   .control-bar :global(button) {
     flex: 1;
-    min-height: 56px; /* Touch-friendly */
-    font-size: 0.9rem;
+    min-height: 64px; /* Touch-friendly */
+    font-size: 1.1rem;
   }
 
   .control-bar :global(button:first-child) {
@@ -747,11 +753,11 @@
   }
 
   .control-bar :global(.btn-label) {
-    font-size: 0.85rem;
+    font-size: 1.05rem;
   }
 
   .control-bar :global(.btn-icon) {
-    font-size: 1.3rem;
+    font-size: 1.6rem;
   }
 
   .glow {
