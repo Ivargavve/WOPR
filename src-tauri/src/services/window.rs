@@ -276,3 +276,56 @@ pub fn move_to_display(window: WebviewWindow, display_index: usize) -> Result<()
 
     Ok(())
 }
+
+/// Set background mode - hides window from taskbar and Alt+Tab
+/// This makes the app behave like Wallpaper Engine (background process)
+#[tauri::command]
+pub fn set_background_mode(window: WebviewWindow, enabled: bool) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::Foundation::HWND;
+        use windows::Win32::UI::WindowsAndMessaging::{
+            GetWindowLongPtrW, SetWindowLongPtrW, ShowWindow,
+            GWL_EXSTYLE, SW_HIDE, SW_SHOW,
+            WS_EX_APPWINDOW, WS_EX_TOOLWINDOW,
+        };
+
+        // Get the window handle
+        let hwnd = window.hwnd().map_err(|e| e.to_string())?;
+        let hwnd = HWND(hwnd.0);
+
+        unsafe {
+            // Get current extended style
+            let ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+
+            let new_style = if enabled {
+                // Remove WS_EX_APPWINDOW (shows in taskbar) and add WS_EX_TOOLWINDOW (hides from taskbar)
+                (ex_style & !(WS_EX_APPWINDOW.0 as isize)) | (WS_EX_TOOLWINDOW.0 as isize)
+            } else {
+                // Remove WS_EX_TOOLWINDOW and add WS_EX_APPWINDOW to show in taskbar again
+                (ex_style & !(WS_EX_TOOLWINDOW.0 as isize)) | (WS_EX_APPWINDOW.0 as isize)
+            };
+
+            SetWindowLongPtrW(hwnd, GWL_EXSTYLE, new_style);
+
+            // Hide and show the window to apply the style change
+            let _ = ShowWindow(hwnd, SW_HIDE);
+            let _ = ShowWindow(hwnd, SW_SHOW);
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        // On macOS, we already hide from Dock in lib.rs using NSApplicationActivationPolicyAccessory
+        // This is a no-op since macOS is already configured as a background app
+        let _ = (window, enabled);
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        // No-op for other platforms
+        let _ = (window, enabled);
+    }
+
+    Ok(())
+}

@@ -80,3 +80,12 @@ export async function getAvailableDisplays() {
 export async function moveToDisplay(displayIndex) {
   return await invoke('move_to_display', { displayIndex });
 }
+
+/**
+ * Set background mode - hides window from taskbar and Alt+Tab (like Wallpaper Engine)
+ * @param {boolean} enabled - Whether to enable background mode
+ * @returns {Promise<void>}
+ */
+export async function setBackgroundMode(enabled) {
+  return await invoke('set_background_mode', { enabled });
+}

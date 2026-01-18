@@ -34,6 +34,7 @@ pub fn run() {
             window::set_always_on_top,
             window::get_available_displays,
             window::move_to_display,
+            window::set_background_mode,
             storage::load_config,
             storage::save_config,
             storage::update_config_value,
@@ -196,6 +197,28 @@ pub fn run() {
                 if config.is_borderless {
                     if let Err(e) = window.set_decorations(false) {
                         eprintln!("Failed to restore borderless: {}", e);
+                    }
+                }
+
+                // Hide from taskbar on Windows (like Wallpaper Engine)
+                #[cfg(target_os = "windows")]
+                {
+                    use windows::Win32::Foundation::HWND;
+                    use windows::Win32::UI::WindowsAndMessaging::{
+                        GetWindowLongPtrW, SetWindowLongPtrW, ShowWindow,
+                        GWL_EXSTYLE, SW_HIDE, SW_SHOW,
+                        WS_EX_APPWINDOW, WS_EX_TOOLWINDOW,
+                    };
+
+                    if let Ok(hwnd) = window.hwnd() {
+                        let hwnd = HWND(hwnd.0);
+                        unsafe {
+                            let ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+                            let new_style = (ex_style & !(WS_EX_APPWINDOW.0 as isize)) | (WS_EX_TOOLWINDOW.0 as isize);
+                            SetWindowLongPtrW(hwnd, GWL_EXSTYLE, new_style);
+                            let _ = ShowWindow(hwnd, SW_HIDE);
+                            let _ = ShowWindow(hwnd, SW_SHOW);
+                        }
                     }
                 }
             }
