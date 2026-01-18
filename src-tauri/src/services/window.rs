@@ -130,16 +130,86 @@ pub fn restore_window_state(app: AppHandle, window: WebviewWindow) -> Result<(),
     Ok(())
 }
 
+/// Stored window state before entering simple fullscreen (macOS only)
+#[cfg(target_os = "macos")]
+static WINDOW_STATE_BEFORE_FULLSCREEN: std::sync::Mutex<Option<(i32, i32, u32, u32)>> =
+    std::sync::Mutex::new(None);
+
 /// Set window to borderless fullscreen mode
+/// - On Windows: uses native fullscreen (works well)
+/// - On macOS: uses simple fullscreen (avoids Space/title bar issues)
 #[tauri::command]
 pub fn set_borderless_fullscreen(window: WebviewWindow, enabled: bool) -> Result<(), String> {
-    if enabled {
-        window.set_decorations(false).map_err(|e| e.to_string())?;
-        window.set_fullscreen(true).map_err(|e| e.to_string())?;
-    } else {
-        window.set_fullscreen(false).map_err(|e| e.to_string())?;
-        window.set_decorations(true).map_err(|e| e.to_string())?;
+    #[cfg(target_os = "windows")]
+    {
+        if enabled {
+            window.set_decorations(false).map_err(|e| e.to_string())?;
+            window.set_fullscreen(true).map_err(|e| e.to_string())?;
+        } else {
+            window.set_fullscreen(false).map_err(|e| e.to_string())?;
+            window.set_decorations(true).map_err(|e| e.to_string())?;
+        }
     }
+
+    #[cfg(target_os = "macos")]
+    {
+        if enabled {
+            // Save current window state before going fullscreen
+            if let (Ok(pos), Ok(size)) = (window.outer_position(), window.inner_size()) {
+                let mut state = WINDOW_STATE_BEFORE_FULLSCREEN.lock().unwrap();
+                *state = Some((pos.x, pos.y, size.width, size.height));
+            }
+
+            // Get the monitor the window is currently on
+            let monitor = window
+                .current_monitor()
+                .map_err(|e| e.to_string())?
+                .ok_or("No monitor found")?;
+
+            let monitor_pos = monitor.position();
+            let monitor_size = monitor.size();
+
+            // Remove decorations and cover the entire monitor (simple fullscreen)
+            window.set_decorations(false).map_err(|e| e.to_string())?;
+            window
+                .set_position(PhysicalPosition::new(monitor_pos.x, monitor_pos.y))
+                .map_err(|e| e.to_string())?;
+            window
+                .set_size(PhysicalSize::new(monitor_size.width, monitor_size.height))
+                .map_err(|e| e.to_string())?;
+        } else {
+            // Restore previous window state
+            let state = WINDOW_STATE_BEFORE_FULLSCREEN.lock().unwrap().take();
+
+            window.set_decorations(true).map_err(|e| e.to_string())?;
+
+            if let Some((x, y, width, height)) = state {
+                window
+                    .set_position(PhysicalPosition::new(x, y))
+                    .map_err(|e| e.to_string())?;
+                window
+                    .set_size(PhysicalSize::new(width, height))
+                    .map_err(|e| e.to_string())?;
+            } else {
+                window
+                    .set_size(PhysicalSize::new(1024, 600))
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        // Fallback for other platforms: use native fullscreen
+        if enabled {
+            window.set_decorations(false).map_err(|e| e.to_string())?;
+            window.set_fullscreen(true).map_err(|e| e.to_string())?;
+        } else {
+            window.set_fullscreen(false).map_err(|e| e.to_string())?;
+            window.set_decorations(true).map_err(|e| e.to_string())?;
+        }
+    }
+
     Ok(())
 }
 

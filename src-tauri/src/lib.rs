@@ -66,6 +66,16 @@ pub fn run() {
             storage::set_autostart_enabled,
         ])
         .setup(|app| {
+            // On macOS, set the activation policy to Accessory (no Dock icon)
+            #[cfg(target_os = "macos")]
+            {
+                use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicy};
+                unsafe {
+                    let app = NSApp();
+                    app.setActivationPolicy_(NSApplicationActivationPolicy::NSApplicationActivationPolicyAccessory);
+                }
+            }
+
             // Initialize storage directories and default config
             if let Err(e) = storage::init_storage(app.handle()) {
                 eprintln!("Failed to initialize storage: {}", e);
